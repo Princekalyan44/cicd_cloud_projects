@@ -1,0 +1,205 @@
+# RBAC (Role-Based Access Control)
+# Define roles, service accounts, and role bindings
+# Implements least privilege access principle
+
+---
+# Service Account for Frontend Application
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-sa
+  namespace: portfolio-prod
+  annotations:
+    # IRSA: IAM Role for Service Account (for AWS access)
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/portfolio-frontend-role
+automountServiceAccountToken: true
+
+---
+# Service Account for Chatbot
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chatbot-sa
+  namespace: portfolio-prod
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/portfolio-chatbot-role
+automountServiceAccountToken: true
+
+---
+# Service Account for PostgreSQL
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres-sa
+  namespace: portfolio-prod
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/portfolio-postgres-role
+automountServiceAccountToken: true
+
+---
+# Role for application pods (minimal permissions)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-role
+  namespace: portfolio-prod
+rules:
+  # Allow reading configmaps (for configuration)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading secrets (for credentials)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  
+  # Allow reading services (for service discovery)
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+---
+# Bind role to frontend service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: frontend-role-binding
+  namespace: portfolio-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: app-role
+subjects:
+  - kind: ServiceAccount
+    name: frontend-sa
+    namespace: portfolio-prod
+
+---
+# Bind role to chatbot service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chatbot-role-binding
+  namespace: portfolio-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: app-role
+subjects:
+  - kind: ServiceAccount
+    name: chatbot-sa
+    namespace: portfolio-prod
+
+---
+# Bind role to postgres service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: postgres-role-binding
+  namespace: portfolio-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: app-role
+subjects:
+  - kind: ServiceAccount
+    name: postgres-sa
+    namespace: portfolio-prod
+
+---
+# ClusterRole for monitoring (Prometheus)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-role
+rules:
+  # Allow reading pods, nodes, services for metrics collection
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading metrics from nodes and pods
+  - apiGroups: [""]
+    resources:
+      - nodes/metrics
+    verbs: ["get"]
+  
+  # Allow reading config for service discovery
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs: ["get"]
+  
+  # Non-resource URL for metrics endpoint
+  - nonResourceURLs:
+      - /metrics
+    verbs: ["get"]
+
+---
+# Service Account for Prometheus
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-sa
+  namespace: monitoring
+
+---
+# Bind ClusterRole to Prometheus service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-role
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: monitoring
+
+---
+# Service Account for ArgoCD
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+
+---
+# ClusterRole for ArgoCD (manage applications)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-application-controller
+rules:
+  # Full access to manage applications
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  
+  # Access to custom resources
+  - apiGroups: ["argoproj.io"]
+    resources: ["*"]
+    verbs: ["*"]
+
+---
+# Bind ClusterRole to ArgoCD service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-application-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-application-controller
+subjects:
+  - kind: ServiceAccount
+    name: argocd-application-controller
+    namespace: argocd
