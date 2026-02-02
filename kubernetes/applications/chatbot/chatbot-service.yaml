@@ -1,0 +1,32 @@
+# Chatbot Service
+# Exposes chatbot pods internally
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatbot
+  namespace: portfolio-prod
+  labels:
+    app: chatbot
+  annotations:
+    # Prometheus scraping
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP  # Sticky sessions for conversations
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600  # 1 hour session timeout
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: chatbot

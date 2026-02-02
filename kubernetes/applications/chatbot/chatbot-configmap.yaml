@@ -1,0 +1,85 @@
+# Chatbot Service ConfigMap
+# Configuration for AI chatbot service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chatbot-config
+  namespace: portfolio-prod
+  labels:
+    app: chatbot
+data:
+  # Application settings
+  APP_NAME: "Portfolio AI Assistant"
+  APP_VERSION: "1.0.0"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  
+  # Server configuration
+  PORT: "8080"
+  HOST: "0.0.0.0"
+  WORKERS: "4"  # Number of worker processes
+  
+  # Database connection (non-sensitive parts)
+  DB_HOST: "postgres.portfolio-prod.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "portfolio"
+  DB_USER: "portfolio_user"
+  # Password comes from Vault secret
+  
+  # RAG (Retrieval Augmented Generation) settings
+  RAG_ENABLED: "true"
+  RAG_TOP_K: "5"  # Number of similar documents to retrieve
+  RAG_SCORE_THRESHOLD: "0.7"  # Minimum similarity score
+  
+  # Embedding model configuration
+  EMBEDDING_MODEL: "sentence-transformers/all-MiniLM-L6-v2"
+  EMBEDDING_DIMENSION: "384"
+  EMBEDDING_BATCH_SIZE: "32"
+  
+  # LLM configuration (using OpenAI-compatible API)
+  LLM_PROVIDER: "openai"  # or "huggingface", "ollama"
+  LLM_MODEL: "gpt-3.5-turbo"
+  LLM_MAX_TOKENS: "500"
+  LLM_TEMPERATURE: "0.7"
+  LLM_TOP_P: "0.9"
+  
+  # Context window
+  MAX_CONTEXT_LENGTH: "4000"
+  MAX_CONVERSATION_HISTORY: "10"  # Number of previous messages to keep
+  
+  # Cache settings
+  CACHE_ENABLED: "true"
+  CACHE_TTL: "3600"  # 1 hour
+  
+  # Rate limiting
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS: "100"  # Per minute
+  RATE_LIMIT_WINDOW: "60"  # Seconds
+  
+  # Monitoring
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  
+  # Prompts
+  SYSTEM_PROMPT: |
+    You are a helpful AI assistant for Kalyan's portfolio website.
+    Your role is to answer questions about Kalyan's professional experience,
+    skills, projects, and background.
+    
+    Guidelines:
+    - Be professional yet friendly
+    - Provide accurate information based on the knowledge base
+    - If you don't know something, be honest about it
+    - Keep responses concise but informative
+    - Highlight Kalyan's DevOps expertise and achievements
+    - Don't make up information not in the knowledge base
+  
+  RAG_PROMPT_TEMPLATE: |
+    Context from knowledge base:
+    {context}
+    
+    User question: {question}
+    
+    Based on the context above, provide a helpful and accurate answer.
+    If the context doesn't contain relevant information, say so.
