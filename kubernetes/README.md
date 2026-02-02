@@ -1,310 +1,171 @@
 # Kubernetes Manifests
 
-Production-ready Kubernetes configurations for deploying the portfolio application on AWS EKS.
+This directory contains all Kubernetes manifests for deploying the portfolio application.
 
-## Directory Structure
+## Structure
 
 ```
 kubernetes/
-├── base/                      # Base configurations
-│   ├── namespaces/           # Namespace definitions
-│   ├── rbac/                 # RBAC roles and bindings
-│   ├── network-policies/     # Network security policies
-│   └── storage/              # Storage classes and PVCs
-├── applications/             # Application deployments
-│   ├── frontend/            # Portfolio frontend
-│   ├── chatbot/             # AI chatbot service
-│   └── postgres/            # PostgreSQL database
-├── platform/                 # Platform services
-│   ├── argocd/              # GitOps deployment
-│   ├── vault/               # Secret management
-│   ├── istio/               # Service mesh
-│   ├── kyverno/             # Policy engine
-│   ├── monitoring/          # Prometheus + Grafana
-│   └── cert-manager/        # SSL certificate management
-└── overlays/                 # Environment-specific configs
-    ├── dev/
-    ├── staging/
-    └── production/
+├── namespaces/           # Namespace definitions
+├── base/                 # Base configurations (RBAC, network policies)
+├── applications/         # Application deployments
+│   ├── frontend/        # Portfolio frontend
+│   ├── chatbot/         # AI chatbot service
+│   └── database/        # PostgreSQL database
+├── platform/            # Platform services
+│   ├── argocd/          # GitOps - ArgoCD
+│   ├── vault/           # Secrets management
+│   ├── istio/           # Service mesh
+│   └── kyverno/         # Policy engine
+├── monitoring/          # Observability stack
+│   ├── prometheus/      # Metrics collection
+│   ├── grafana/         # Dashboards
+│   └── loki/            # Log aggregation
+└── ingress/             # Ingress and routing
 ```
 
 ## Deployment Order
 
-### Phase 1: Foundation (Required First)
+### Phase 1: Foundation
 1. Namespaces
-2. Storage Classes
-3. RBAC (Service Accounts, Roles, RoleBindings)
-4. Network Policies
+2. Storage classes
+3. Network policies
+4. RBAC (roles and service accounts)
 
 ### Phase 2: Platform Services
-5. HashiCorp Vault (secrets management)
-6. ArgoCD (GitOps)
-7. Istio (service mesh)
-8. Kyverno (policy engine)
-9. Cert-Manager (SSL certificates)
-10. Prometheus + Grafana (monitoring)
+1. ArgoCD
+2. Vault
+3. Istio
+4. Kyverno
 
 ### Phase 3: Applications
-11. PostgreSQL (database)
-12. Chatbot Service
-13. Frontend Application
-14. Ingress/Gateway
+1. PostgreSQL database
+2. Chatbot service
+3. Frontend application
+4. Ingress/ALB
 
-## Quick Start
+### Phase 4: Observability
+1. Prometheus
+2. Grafana
+3. Loki
 
-### Prerequisites
+## Quick Deploy
+
+### Deploy everything (recommended for GitOps)
 ```bash
-# Configure kubectl for EKS cluster
-aws eks update-kubeconfig --region ap-south-1 --name portfolio-eks-cluster
-
-# Verify connection
-kubectl cluster-info
-kubectl get nodes
+# Apply ArgoCD Application of Applications
+kubectl apply -f platform/argocd/app-of-apps.yaml
 ```
 
-### Deploy Foundation
+### Manual deployment
 ```bash
-# Create namespaces
-kubectl apply -f base/namespaces/
+# Phase 1: Foundation
+kubectl apply -f namespaces/
+kubectl apply -f base/
 
-# Apply storage configurations
-kubectl apply -f base/storage/
-
-# Setup RBAC
-kubectl apply -f base/rbac/
-
-# Apply network policies
-kubectl apply -f base/network-policies/
-```
-
-### Deploy Platform Services
-```bash
-# Install Vault
-kubectl apply -f platform/vault/
-
-# Install ArgoCD
+# Phase 2: Platform
 kubectl apply -f platform/argocd/
-
-# Install Istio
+kubectl apply -f platform/vault/
 kubectl apply -f platform/istio/
+kubectl apply -f platform/kyverno/
 
-# Install monitoring
-kubectl apply -f platform/monitoring/
-```
-
-### Deploy Applications
-```bash
-# Deploy PostgreSQL
-kubectl apply -f applications/postgres/
-
-# Deploy Chatbot
+# Phase 3: Applications
+kubectl apply -f applications/database/
 kubectl apply -f applications/chatbot/
-
-# Deploy Frontend
 kubectl apply -f applications/frontend/
-```
+kubectl apply -f ingress/
 
-## Environment-Specific Deployments
-
-Using Kustomize for environment overlays:
-
-```bash
-# Development
-kubectl apply -k overlays/dev/
-
-# Staging
-kubectl apply -k overlays/staging/
-
-# Production
-kubectl apply -k overlays/production/
+# Phase 4: Monitoring
+kubectl apply -f monitoring/prometheus/
+kubectl apply -f monitoring/grafana/
 ```
 
 ## Namespaces
 
-| Namespace | Purpose | Resource Quota |
-|-----------|---------|----------------|
-| `portfolio-dev` | Development environment | 4 CPU, 8Gi RAM |
-| `portfolio-staging` | Staging environment | 8 CPU, 16Gi RAM |
-| `portfolio-prod` | Production environment | 16 CPU, 32Gi RAM |
-| `argocd` | ArgoCD GitOps | 2 CPU, 4Gi RAM |
-| `istio-system` | Istio service mesh | 4 CPU, 8Gi RAM |
-| `vault` | HashiCorp Vault | 2 CPU, 4Gi RAM |
-| `monitoring` | Prometheus + Grafana | 4 CPU, 8Gi RAM |
-| `kyverno` | Policy engine | 1 CPU, 2Gi RAM |
+- `portfolio-dev` - Development environment
+- `portfolio-staging` - Staging environment
+- `portfolio-prod` - Production environment
+- `argocd` - ArgoCD GitOps
+- `vault` - HashiCorp Vault
+- `istio-system` - Istio service mesh
+- `monitoring` - Prometheus, Grafana, Loki
+- `kyverno` - Policy engine
 
-## Security Features
+## Configuration
 
-### Network Policies
-- Default deny all ingress/egress
-- Explicit allow rules for required communication
-- Namespace isolation
+### Secrets
+Secrets are managed by HashiCorp Vault. Each application has a ServiceAccount with:
+- Vault role binding
+- IAM role for AWS resources (IRSA)
 
-### RBAC
-- Least privilege principle
-- Service accounts for each application
-- Role-based access control
+### Environment Variables
+ConfigMaps for each environment:
+- `portfolio-dev-config`
+- `portfolio-staging-config`
+- `portfolio-prod-config`
 
-### Pod Security
-- Pod Security Standards (restricted)
-- Non-root containers
-- Read-only root filesystem where possible
-- No privilege escalation
+### Resource Limits
 
-### Secrets Management
-- HashiCorp Vault for sensitive data
-- External Secrets Operator integration
-- Automatic secret rotation
+| Service | Requests | Limits |
+|---------|----------|--------|
+| Frontend | 256Mi RAM, 0.25 CPU | 512Mi RAM, 0.5 CPU |
+| Chatbot | 512Mi RAM, 0.5 CPU | 1Gi RAM, 1 CPU |
+| PostgreSQL | 512Mi RAM, 0.5 CPU | 2Gi RAM, 1 CPU |
 
-## Resource Management
+## Monitoring
 
-### Resource Requests & Limits
-All pods have defined:
-- CPU requests and limits
-- Memory requests and limits
-- Storage requests (for stateful apps)
+- **Metrics**: Prometheus scrapes all pods with `prometheus.io/scrape: "true"` annotation
+- **Logs**: Loki collects logs from all pods
+- **Traces**: Istio provides distributed tracing
+- **Dashboards**: Grafana dashboards in `monitoring/grafana/dashboards/`
 
-### Horizontal Pod Autoscaling (HPA)
-- Frontend: 2-10 replicas based on CPU
-- Chatbot: 2-5 replicas based on CPU
-- Target: 70% CPU utilization
+## Security
 
-### Vertical Pod Autoscaling (VPA)
-- Enabled for resource optimization
-- Recommendations for right-sizing
+- **Network Policies**: Restrict pod-to-pod communication
+- **Pod Security**: Enforced by Kyverno policies
+- **mTLS**: Enabled via Istio
+- **Secrets**: Stored in Vault, injected at runtime
+- **RBAC**: Least privilege access
 
-## Monitoring & Observability
+## Scaling
 
-### Metrics
-- Prometheus for metrics collection
-- Grafana dashboards for visualization
-- AlertManager for alerting
+### Horizontal Pod Autoscaler (HPA)
+- Frontend: 2-10 replicas (CPU > 70%)
+- Chatbot: 2-5 replicas (CPU > 80%)
 
-### Logging
-- Fluent Bit for log collection
-- CloudWatch Logs for storage
-- Structured JSON logging
-
-### Tracing
-- Istio distributed tracing
-- Jaeger integration
-
-## High Availability
-
-### Frontend
-- Min 2 replicas across AZs
-- Pod anti-affinity rules
-- PodDisruptionBudget (min 1 available)
-
-### Chatbot
-- Min 2 replicas
-- Session affinity for conversations
-- Graceful shutdown (30s)
-
-### Database
-- RDS PostgreSQL (managed)
-- Multi-AZ deployment
-- Automated backups
-
-## Disaster Recovery
-
-### Backups
-- Velero for cluster backups
-- Daily snapshots to S3
-- 30-day retention
-
-### GitOps
-- All configs in Git (this repo)
-- ArgoCD auto-sync
-- Easy rollback to previous versions
+### Vertical Pod Autoscaler (VPA)
+Enabled for all applications with recommendation mode.
 
 ## Troubleshooting
 
-### Common Issues
-
-**Pods not starting:**
+### Check pod status
 ```bash
-kubectl describe pod <pod-name> -n <namespace>
-kubectl logs <pod-name> -n <namespace>
+kubectl get pods -n portfolio-prod
 ```
 
-**Network connectivity issues:**
+### View logs
 ```bash
-# Check network policies
-kubectl get networkpolicies -n <namespace>
-
-# Test connectivity
-kubectl run test -it --rm --image=busybox -n <namespace> -- /bin/sh
+kubectl logs -n portfolio-prod deployment/frontend -f
 ```
 
-**Resource constraints:**
+### Describe resources
 ```bash
-# Check resource usage
-kubectl top nodes
-kubectl top pods -n <namespace>
-
-# Check events
-kubectl get events -n <namespace> --sort-by='.lastTimestamp'
+kubectl describe pod <pod-name> -n portfolio-prod
 ```
 
-## Updates & Rollbacks
-
-### Rolling Updates
-All deployments use `RollingUpdate` strategy:
-- Max unavailable: 0 (zero downtime)
-- Max surge: 1 (controlled rollout)
-
-### Rollback
+### Port forward for testing
 ```bash
-# View rollout history
-kubectl rollout history deployment/<name> -n <namespace>
-
-# Rollback to previous version
-kubectl rollout undo deployment/<name> -n <namespace>
-
-# Rollback to specific revision
-kubectl rollout undo deployment/<name> --to-revision=<n> -n <namespace>
+kubectl port-forward -n portfolio-prod svc/frontend 3000:3000
 ```
 
-## Cost Optimization
+## Rollback
 
-### Resource Right-Sizing
-- VPA recommendations applied
-- Regular review of resource usage
-- Pod priorities for cost optimization
+### Using kubectl
+```bash
+kubectl rollout undo deployment/frontend -n portfolio-prod
+```
 
-### Cluster Autoscaler
-- Automatic node scaling
-- Scale down unused nodes
-- Spot instances for non-production
-
-## Compliance & Policies
-
-### Kyverno Policies
-- Require resource limits
-- Enforce security standards
-- Restrict image registries (ECR only)
-- Require labels
-- Validate configurations
-
-### Audit Logging
-- EKS audit logs enabled
-- CloudWatch Logs retention
-- Compliance reporting
-
-## Contributing
-
-When adding new manifests:
-1. Follow naming conventions
-2. Add resource requests/limits
-3. Include health checks
-4. Document in this README
-5. Test in dev environment first
-6. Update overlays if needed
-
-## Support
-
-For issues or questions:
-- Check troubleshooting section
-- Review pod logs
-- Check ArgoCD sync status
-- Review Grafana dashboards
+### Using ArgoCD
+```bash
+argocd app rollback portfolio-frontend <revision>
+```
