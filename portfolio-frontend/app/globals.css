@@ -1,119 +1,91 @@
 /**
- * Global CSS Styles
- * Includes Tailwind directives and custom styles
+ * Global Styles
+ * These styles apply to the entire application
  */
 
-/* Tailwind CSS layers */
+/* Import Tailwind CSS base, components, and utilities */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
+/* Custom scrollbar styling for better aesthetics */
 @layer base {
-  /* Smooth scrolling for the entire page */
+  /* Dark themed scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1e293b; /* slate-800 */
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #475569; /* slate-600 */
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #64748b; /* slate-500 */
+  }
+
+  /* Smooth scrolling behavior */
   html {
     scroll-behavior: smooth;
   }
-  
-  /* Default text color and background */
+
+  /* Base body styles */
   body {
-    @apply text-gray-100 bg-slate-900;
-  }
-  
-  /* Heading styles */
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold;
+    @apply text-slate-100;
   }
 }
 
-/* Custom component styles */
-@layer components {
-  /* Button styles */
-  .btn-primary {
-    @apply px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold 
-           hover:bg-blue-700 transition-colors duration-300 
-           shadow-lg hover:shadow-xl;
-  }
-  
-  .btn-secondary {
-    @apply px-6 py-3 bg-slate-700 text-white rounded-lg font-semibold 
-           hover:bg-slate-600 transition-colors duration-300 
-           border-2 border-slate-600;
-  }
-  
-  /* Card styles */
-  .card {
-    @apply bg-slate-800 rounded-xl p-6 shadow-xl 
-           border border-slate-700 hover:border-blue-500 
-           transition-all duration-300;
-  }
-  
-  /* Section container */
-  .section-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
-  }
-  
-  /* Section title */
-  .section-title {
-    @apply text-4xl font-bold text-center mb-12 
-           bg-clip-text text-transparent 
-           bg-gradient-to-r from-blue-400 to-purple-500;
-  }
-}
-
-/* Custom animations */
+/* Custom utility classes */
 @layer utilities {
-  /* Fade in animation */
-  .animate-fade-in {
-    animation: fadeIn 0.8s ease-in;
+  /* Glassmorphism effect for cards */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+
+  /* Gradient text effect */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent;
   }
-  
-  /* Slide in from left */
-  .animate-slide-in-left {
-    animation: slideInLeft 0.6s ease-out;
-  }
-  
-  @keyframes slideInLeft {
-    from {
-      opacity: 0;
-      transform: translateX(-50px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  /* Pulse animation for attention */
-  .animate-pulse-slow {
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  /* Animated gradient background */
+  .animated-gradient {
+    background: linear-gradient(-45deg, #667eea 0%, #764ba2 25%, #f093fb 51%, #4facfe 100%);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
   }
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 10px;
+/* Keyframe animations */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-slate-900;
+/* Fade in animation for content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-600 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-500;
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
 }

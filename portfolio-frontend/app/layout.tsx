@@ -1,10 +1,7 @@
 /**
  * Root Layout Component
- * This wraps all pages and provides:
- * - HTML structure
- * - Global styles
- * - Metadata for SEO
- * - Font loading
+ * This is the main layout wrapper for the entire application
+ * It includes global styles, fonts, and metadata
  */
 
 import type { Metadata } from 'next'
@@ -12,24 +9,22 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 
 // Load Inter font from Google Fonts
-// This font is used throughout the application
+// This is optimized by Next.js for performance
 const inter = Inter({ subsets: ['latin'] })
 
-// Metadata for SEO (Search Engine Optimization)
-// This appears in browser tabs and search results
+// SEO Metadata - This appears in search results and social shares
 export const metadata: Metadata = {
-  title: 'Kalyan - DevOps Engineer | Portfolio',
-  description: 'DevOps Engineer with 3.5+ years of experience in AWS, Kubernetes, CI/CD, and Infrastructure as Code. Based in Bangalore, India.',
-  keywords: ['DevOps', 'AWS', 'Kubernetes', 'Docker', 'CI/CD', 'Terraform', 'Portfolio'],
+  title: 'Kalyan - DevOps Engineer Portfolio',
+  description: 'DevOps Engineer with 3.5+ years of experience in Kubernetes, AWS, CI/CD, and cloud infrastructure. Specializing in container orchestration and automation.',
+  keywords: ['DevOps', 'Kubernetes', 'AWS', 'CI/CD', 'Docker', 'Terraform', 'Engineer'],
   authors: [{ name: 'Kalyan' }],
   openGraph: {
     title: 'Kalyan - DevOps Engineer',
-    description: 'Experienced DevOps Engineer specializing in cloud infrastructure and automation',
+    description: 'Portfolio showcasing DevOps projects and expertise',
     type: 'website',
   },
 }
 
-// Root layout that wraps all pages
 export default function RootLayout({
   children,
 }: {
@@ -39,7 +34,7 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       {/* scroll-smooth enables smooth scrolling for anchor links */}
       <body className={inter.className}>
-        {/* Main content of each page goes here */}
+        {/* Main content from each page */}
         {children}
       </body>
     </html>
