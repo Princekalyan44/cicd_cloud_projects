@@ -1,0 +1,108 @@
+# PostgreSQL ConfigMap
+# Non-sensitive configuration for PostgreSQL
+# Sensitive data (passwords) are stored in Vault
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: portfolio-prod
+  labels:
+    app: postgres
+data:
+  # PostgreSQL configuration
+  POSTGRES_DB: "portfolio"
+  POSTGRES_USER: "portfolio_user"
+  
+  # Connection settings
+  POSTGRES_MAX_CONNECTIONS: "100"
+  POSTGRES_SHARED_BUFFERS: "256MB"
+  POSTGRES_EFFECTIVE_CACHE_SIZE: "1GB"
+  POSTGRES_WORK_MEM: "16MB"
+  
+  # Performance tuning
+  POSTGRES_CHECKPOINT_COMPLETION_TARGET: "0.9"
+  POSTGRES_WAL_BUFFERS: "16MB"
+  POSTGRES_DEFAULT_STATISTICS_TARGET: "100"
+  
+  # Logging
+  POSTGRES_LOG_STATEMENT: "mod"  # Log modifications
+  POSTGRES_LOG_DURATION: "on"
+  POSTGRES_LOG_LINE_PREFIX: "%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+  
+  # Extensions to enable
+  POSTGRES_EXTENSIONS: "pgvector,pg_stat_statements"
+  
+  # Custom PostgreSQL configuration
+  postgresql.conf: |
+    # Connection settings
+    max_connections = 100
+    superuser_reserved_connections = 3
+    
+    # Memory settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    work_mem = 16MB
+    maintenance_work_mem = 64MB
+    
+    # Write-Ahead Logging
+    wal_level = replica
+    wal_buffers = 16MB
+    checkpoint_completion_target = 0.9
+    
+    # Query tuning
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    default_statistics_target = 100
+    
+    # Logging
+    logging_collector = on
+    log_directory = 'pg_log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_statement = 'mod'
+    log_duration = on
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # Extensions
+    shared_preload_libraries = 'pg_stat_statements'
+  
+  # Initialization script
+  init.sql: |
+    -- Enable extensions
+    CREATE EXTENSION IF NOT EXISTS pgvector;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+    
+    -- Create tables for chatbot
+    CREATE TABLE IF NOT EXISTS conversations (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      response TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_session (session_id),
+      INDEX idx_created (created_at)
+    );
+    
+    CREATE TABLE IF NOT EXISTS knowledge_base (
+      id SERIAL PRIMARY KEY,
+      content TEXT NOT NULL,
+      embedding vector(384),  -- Dimension for sentence transformers
+      metadata JSONB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create index for vector similarity search
+    CREATE INDEX IF NOT EXISTS knowledge_base_embedding_idx 
+      ON knowledge_base 
+      USING ivfflat (embedding vector_cosine_ops)
+      WITH (lists = 100);
+    
+    -- Create index on metadata for filtering
+    CREATE INDEX IF NOT EXISTS knowledge_base_metadata_idx 
+      ON knowledge_base 
+      USING GIN (metadata);
+    
+    -- Grant permissions
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO portfolio_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO portfolio_user;
