@@ -1,0 +1,142 @@
+# Roles and RoleBindings
+# Define permissions for service accounts within namespaces
+# Following principle of least privilege
+
+---
+# Application Role (for frontend and chatbot)
+# Minimal permissions needed to run the application
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: application-role
+  namespace: portfolio-prod
+  labels:
+    component: rbac
+rules:
+  # Allow reading ConfigMaps (for app configuration)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  
+  # Allow reading Secrets (for database credentials, API keys)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  
+  # Allow reading Services (for service discovery)
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+
+---
+# Bind application role to frontend service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: frontend-application-binding
+  namespace: portfolio-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: application-role
+subjects:
+  - kind: ServiceAccount
+    name: portfolio-frontend
+    namespace: portfolio-prod
+
+---
+# Bind application role to chatbot service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chatbot-application-binding
+  namespace: portfolio-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: application-role
+subjects:
+  - kind: ServiceAccount
+    name: portfolio-chatbot
+    namespace: portfolio-prod
+
+---
+# Monitoring Role (for Prometheus)
+# Needs to scrape metrics from all pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-monitoring
+  labels:
+    component: monitoring
+rules:
+  # Read access to pods, services, endpoints for service discovery
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  
+  # Access to metrics
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs: ["get"]
+  
+  # Non-resource URLs for metrics
+  - nonResourceURLs:
+      - /metrics
+      - /metrics/cadvisor
+    verbs: ["get"]
+
+---
+# Bind monitoring role to Prometheus service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-monitoring-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-monitoring
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
+
+---
+# ArgoCD Role (for GitOps deployment)
+# Needs cluster-wide access to manage applications
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-application-controller
+  labels:
+    component: gitops
+rules:
+  # Full access to manage applications
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  
+  # Non-resource URLs
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+
+---
+# Bind ArgoCD role to ArgoCD service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-application-controller-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-application-controller
+subjects:
+  - kind: ServiceAccount
+    name: argocd-application-controller
+    namespace: argocd
