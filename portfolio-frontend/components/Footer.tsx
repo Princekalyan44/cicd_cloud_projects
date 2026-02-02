@@ -1,123 +1,97 @@
 /**
  * Footer Component
- * Bottom section with copyright and quick links
+ * Bottom section with copyright and links
  */
 
 'use client'
 
-import { Github, Linkedin, Mail } from 'lucide-react'
-import { PERSONAL_INFO, SOCIAL_LINKS } from '@/lib/constants'
+import { Github, Linkedin, Mail, Heart } from 'lucide-react'
 
-export default function Footer() {
+const Footer = () => {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-dark-card border-t border-dark-border py-12">
-      <div className="container-custom">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          {/* About Section */}
+    <footer className="mt-20 border-t border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* About */}
           <div>
-            <h3 className="text-xl font-bold text-gradient mb-4">
-              {PERSONAL_INFO.name}
-            </h3>
-            <p className="text-dark-muted">
-              {PERSONAL_INFO.role} specializing in cloud infrastructure,
-              Kubernetes, and CI/CD automation.
+            <h3 className="text-xl font-bold gradient-text mb-4">Kalyan</h3>
+            <p className="text-slate-400 text-sm">
+              DevOps Engineer passionate about cloud infrastructure, automation, and continuous delivery.
+              Building scalable and reliable systems.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
+            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="#home"
-                  className="text-dark-muted hover:text-primary-500 transition-colors"
-                >
-                  Home
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#skills"
-                  className="text-dark-muted hover:text-primary-500 transition-colors"
-                >
+                <a href="#skills" className="text-slate-400 hover:text-white transition-colors">
                   Skills
                 </a>
               </li>
               <li>
-                <a
-                  href="#experience"
-                  className="text-dark-muted hover:text-primary-500 transition-colors"
-                >
+                <a href="#experience" className="text-slate-400 hover:text-white transition-colors">
                   Experience
                 </a>
               </li>
               <li>
-                <a
-                  href="#projects"
-                  className="text-dark-muted hover:text-primary-500 transition-colors"
-                >
+                <a href="#projects" className="text-slate-400 hover:text-white transition-colors">
                   Projects
+                </a>
+              </li>
+              <li>
+                <a href="#contact" className="text-slate-400 hover:text-white transition-colors">
+                  Contact
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Contact & Social */}
+          {/* Social Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Connect</h3>
-            <div className="space-y-3">
-              {/* Email */}
+            <h4 className="font-semibold mb-4">Connect</h4>
+            <div className="flex gap-4">
               <a
-                href={`mailto:${PERSONAL_INFO.email}`}
-                className="flex items-center gap-2 text-dark-muted hover:text-primary-500 transition-colors"
+                href="https://github.com/Princekalyan44"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
               >
-                <Mail size={18} />
-                {PERSONAL_INFO.email}
+                <Github size={20} />
               </a>
-
-              {/* Social Links */}
-              <div className="flex items-center gap-4 mt-4">
-                <a
-                  href={SOCIAL_LINKS.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-dark-muted hover:text-primary-500 transition-colors"
-                  aria-label="GitHub"
-                >
-                  <Github size={24} />
-                </a>
-                <a
-                  href={SOCIAL_LINKS.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-dark-muted hover:text-primary-500 transition-colors"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin size={24} />
-                </a>
-              </div>
+              <a
+                href="https://linkedin.com/in/kalyan-devops"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <Linkedin size={20} />
+              </a>
+              <a
+                href="mailto:kalyan@example.com"
+                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <Mail size={20} />
+              </a>
             </div>
+            <p className="text-slate-400 text-sm mt-4">
+              Open to opportunities and collaborations
+            </p>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-dark-border pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            {/* Copyright */}
-            <p className="text-dark-muted text-sm">
-              © {currentYear} {PERSONAL_INFO.name}. All rights reserved.
-            </p>
-
-            {/* Tech Stack Info */}
-            <p className="text-dark-muted text-sm">
-              Built with Next.js • Deployed on AWS EKS • Powered by GitOps
-            </p>
-          </div>
+        {/* Copyright */}
+        <div className="mt-8 pt-8 border-t border-slate-800 text-center">
+          <p className="text-slate-400 text-sm flex items-center justify-center gap-2">
+            © {currentYear} Kalyan. Built with <Heart size={16} className="text-red-500" /> using Next.js, deployed on AWS EKS
+          </p>
         </div>
       </div>
     </footer>
   )
 }
+
+export default Footer

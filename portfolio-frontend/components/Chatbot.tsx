@@ -1,246 +1,216 @@
 /**
- * Chatbot Widget Component
- * Floating AI chatbot that answers questions about your background
- * Communicates with backend chatbot service via API
+ * AI Chatbot Widget Component
+ * Floating chat widget that communicates with backend chatbot service
+ * Implements RAG-based Q&A about portfolio and experience
  */
 
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Loader } from 'lucide-react'
-import { CHATBOT_CONFIG } from '@/lib/constants'
+import { motion, AnimatePresence } from 'framer-motion'
+import { MessageCircle, X, Send, Bot, User } from 'lucide-react'
+import axios from 'axios'
 
 // Message type definition
 interface Message {
   id: string
-  role: 'user' | 'assistant'
-  content: string
+  text: string
+  sender: 'user' | 'bot'
   timestamp: Date
 }
 
-export default function Chatbot() {
-  // Widget open/closed state
+const Chatbot = () => {
+  // State management
   const [isOpen, setIsOpen] = useState(false)
-  
-  // Chat messages
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      role: 'assistant',
-      content: "Hi! I'm Kalyan's AI assistant. Ask me anything about his experience, skills, or projects!",
+      text: 'Hi! I\'m Kalyan\'s AI assistant. Ask me anything about his experience, skills, or projects!',
+      sender: 'bot',
       timestamp: new Date(),
     },
   ])
-  
-  // Current input text
-  const [input, setInput] = useState('')
-  
-  // Loading state when waiting for response
-  const [isLoading, setIsLoading] = useState(false)
-  
-  // Ref for auto-scrolling to latest message
+  const [inputValue, setInputValue] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const sessionId = useRef(Math.random().toString(36).substring(7))
 
   // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
   }, [messages])
 
-  // Handle sending a message
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return
+  // Send message to chatbot API
+  const sendMessage = async () => {
+    if (!inputValue.trim()) return
 
     // Add user message to chat
     const userMessage: Message = {
       id: Date.now().toString(),
-      role: 'user',
-      content: input,
+      text: inputValue,
+      sender: 'user',
       timestamp: new Date(),
     }
-    setMessages((prev) => [...prev, userMessage])
-    setInput('')
-    setIsLoading(true)
+    setMessages(prev => [...prev, userMessage])
+    setInputValue('')
+    setIsTyping(true)
 
     try {
       // Call chatbot API
-      // In production, this calls your backend chatbot service
-      const response = await fetch(`${CHATBOT_CONFIG.apiUrl}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: input,
-          sessionId: 'web-' + Date.now(), // Simple session ID
-        }),
-      })
+      const response = await axios.post(
+        process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:8080/chat',
+        {
+          message: inputValue,
+          sessionId: sessionId.current,
+        }
+      )
 
-      if (!response.ok) throw new Error('API request failed')
-
-      const data = await response.json()
-
-      // Add assistant response to chat
-      const assistantMessage: Message = {
+      // Add bot response to chat
+      const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
+        text: response.data.response,
+        sender: 'bot',
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, assistantMessage])
+      setMessages(prev => [...prev, botMessage])
     } catch (error) {
       console.error('Chatbot error:', error)
       
-      // Show error message in chat
-      // For development, show fallback responses
-      const fallbackResponse = getFallbackResponse(input)
+      // Fallback response if API fails
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: fallbackResponse,
+        text: 'I\'m having trouble connecting right now. Please try again later or contact Kalyan directly at kalyan@example.com',
+        sender: 'bot',
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, errorMessage])
+      setMessages(prev => [...prev, errorMessage])
     } finally {
-      setIsLoading(false)
+      setIsTyping(false)
     }
   }
 
-  // Fallback responses for development (before chatbot API is deployed)
-  const getFallbackResponse = (question: string): string => {
-    const q = question.toLowerCase()
-    
-    if (q.includes('experience') || q.includes('work')) {
-      return "I have 3.5+ years of DevOps experience at Justdial Ltd., where I managed Kubernetes clusters, implemented CI/CD pipelines, and automated infrastructure with Terraform. I've worked extensively with AWS, Docker, and monitoring tools like Prometheus and Grafana."
-    }
-    
-    if (q.includes('skills') || q.includes('technology') || q.includes('tech')) {
-      return "My core skills include: Cloud (AWS, EKS), Containers (Docker, Kubernetes), CI/CD (Jenkins, GitLab, GitHub Actions), IaC (Terraform), Monitoring (Prometheus, Grafana), and Linux/RHEL administration. I'm also certified as an AWS Solutions Architect."
-    }
-    
-    if (q.includes('project')) {
-      return "My featured project is this enterprise CI/CD pipeline on AWS EKS! It includes a portfolio website with AI chatbot (powered by RAG), GitOps with ArgoCD, Istio service mesh, Vault for secrets, and complete observability with Prometheus and Grafana. It showcases modern DevOps practices."
-    }
-    
-    if (q.includes('contact') || q.includes('hire') || q.includes('available')) {
-      return "I'm currently open to DevOps opportunities! You can reach me via the contact form on this page, or connect with me on LinkedIn and GitHub. I'm based in Bangalore, India."
-    }
-    
-    if (q.includes('kubernetes') || q.includes('k8s')) {
-      return "I have extensive Kubernetes experience, managing 50+ microservices in production at Justdial. I work with EKS, Helm, service meshes, and am preparing for my CKA certification. I've handled cluster scaling, monitoring, and troubleshooting."
-    }
-    
-    if (q.includes('aws') || q.includes('cloud')) {
-      return "I'm AWS certified (Solutions Architect) with hands-on experience in EKS, EC2, S3, RDS, Lambda, and more. I've managed 100+ AWS resources using Terraform and implemented secure, scalable cloud architectures."
-    }
-    
-    return "That's a great question! While my AI backend is being deployed, you can explore the Skills, Experience, and Projects sections above for detailed information. Or feel free to ask about my DevOps experience, technical skills, or projects!"
-  }
-
-  // Handle Enter key to send message
+  // Handle Enter key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      sendMessage()
     }
   }
 
   return (
     <>
-      {/* Floating Button - Bottom Right */}
-      <button
+      {/* Floating chat button */}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 1, type: 'spring' }}
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 p-4 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg transition-all duration-300 hover:scale-110"
-        aria-label="Toggle chatbot"
+        className="fixed bottom-6 right-6 z-50 p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-lg hover:shadow-xl transition-shadow"
       >
-        {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
-      </button>
+        {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
+      </motion.button>
 
-      {/* Chat Window */}
-      {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-8rem)] glass rounded-lg shadow-2xl flex flex-col animate-slide-in-right">
-          {/* Header */}
-          <div className="bg-primary-500 text-white p-4 rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-lg">AI Assistant</h3>
-                <p className="text-sm text-primary-100">Ask me anything!</p>
+      {/* Chat window */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-24 right-6 z-50 w-96 h-[500px] glass rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          >
+            {/* Chat header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4 flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-full">
+                <Bot size={24} />
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="hover:bg-primary-600 p-1 rounded"
-                aria-label="Close chat"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex-1">
+                <h3 className="font-semibold">AI Assistant</h3>
+                <p className="text-xs text-white/80">Ask me anything!</p>
+              </div>
             </div>
-          </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+            {/* Messages container */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
                 <div
-                  className={`max-w-[80%] px-4 py-2 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-dark-card text-dark-text'
-                  }`}
+                  key={message.id}
+                  className={`flex gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : ''}`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <span className="text-xs opacity-70 mt-1 block">
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
+                  {/* Avatar */}
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.sender === 'user' ? 'bg-blue-500' : 'bg-purple-500'
+                  }`}>
+                    {message.sender === 'user' ? <User size={16} /> : <Bot size={16} />}
+                  </div>
+                  
+                  {/* Message bubble */}
+                  <div className={`flex-1 ${
+                    message.sender === 'user' ? 'text-right' : ''
+                  }`}>
+                    <div className={`inline-block max-w-[80%] p-3 rounded-lg ${
+                      message.sender === 'user'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-700 text-slate-100'
+                    }`}>
+                      <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-dark-card px-4 py-2 rounded-lg flex items-center gap-2">
-                  <Loader size={16} className="animate-spin" />
-                  <span className="text-sm">Thinking...</span>
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
+                    <Bot size={16} />
+                  </div>
+                  <div className="bg-slate-700 p-3 rounded-lg">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100" />
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Auto-scroll anchor */}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <div className="p-4 border-t border-dark-border">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask me anything..."
-                className="flex-1 px-4 py-2 bg-dark-bg border border-dark-border rounded-lg focus:border-primary-500 focus:outline-none text-sm"
-                disabled={isLoading}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-dark-border disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-                aria-label="Send message"
-              >
-                <Send size={18} />
-              </button>
+              )}
+              
+              <div ref={messagesEndRef} />
             </div>
-            <p className="text-xs text-dark-muted mt-2">
-              Powered by AI • Responses may vary
-            </p>
-          </div>
-        </div>
-      )}
+
+            {/* Input area */}
+            <div className="p-4 border-t border-slate-700">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!inputValue.trim() || isTyping}
+                  className="p-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
+
+export default Chatbot

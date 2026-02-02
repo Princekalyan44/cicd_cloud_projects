@@ -1,15 +1,16 @@
 /**
  * Contact Section Component
- * Contact form and information
+ * Contact form and social links
+ * Form submissions can be integrated with email service or backend API
  */
 
 'use client'
 
-import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Mail, Phone, MapPin, Send } from 'lucide-react'
-import { PERSONAL_INFO } from '@/lib/constants'
+import { useState } from 'react'
 
-export default function Contact() {
+const Contact = () => {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -17,8 +18,6 @@ export default function Contact() {
     subject: '',
     message: '',
   })
-
-  // Loading and success states
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
@@ -36,18 +35,13 @@ export default function Contact() {
     setIsSubmitting(true)
 
     try {
-      // In production, this would send to an API endpoint or email service
-      // For now, we'll simulate a submission
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // For real implementation, you could use:
-      // - AWS SES for email
-      // - Form service like Formspree, Form.io
-      // - Your own backend API
+      // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
+      // For now, just simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
       console.log('Form submitted:', formData)
-      
       setSubmitStatus('success')
+      
       // Reset form
       setFormData({ name: '', email: '', subject: '', message: '' })
       
@@ -63,198 +57,189 @@ export default function Contact() {
   }
 
   return (
-    <div className="section-padding bg-dark-card">
-      <div className="container-custom">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Get In <span className="text-gradient">Touch</span>
-          </h2>
-          <p className="text-dark-muted text-lg max-w-2xl mx-auto">
-            Have a project in mind or want to discuss DevOps solutions? Let's
-            connect!
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Section header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        viewport={{ once: true }}
+        className="text-center mb-16">
+        <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <span className="gradient-text">Get In Touch</span>
+        </h2>
+        <p className="text-slate-400 text-lg">
+          Let's discuss how I can help with your DevOps needs
+        </p>
+      </motion.div>
 
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Information */}
-          <div className="space-y-8">
+      <div className="grid md:grid-cols-2 gap-12">
+        {/* Contact information */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+        >
+          <h3 className="text-2xl font-bold mb-6">Contact Information</h3>
+          
+          <div className="space-y-6">
+            {/* Email */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-blue-500/20 rounded-lg">
+                <Mail size={24} className="text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400 mb-1">Email</p>
+                <a href="mailto:kalyan@example.com" className="text-white hover:text-blue-400 transition-colors">
+                  kalyan@example.com
+                </a>
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-green-500/20 rounded-lg">
+                <Phone size={24} className="text-green-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400 mb-1">Phone</p>
+                <a href="tel:+919876543210" className="text-white hover:text-green-400 transition-colors">
+                  +91 98765 43210
+                </a>
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-purple-500/20 rounded-lg">
+                <MapPin size={24} className="text-purple-400" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400 mb-1">Location</p>
+                <p className="text-white">Bangalore, Karnataka, India</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Availability */}
+          <div className="mt-8 glass rounded-xl p-6">
+            <h4 className="font-semibold mb-2">Availability</h4>
+            <p className="text-slate-400 text-sm">
+              Open to full-time opportunities, freelance projects, and consulting engagements.
+              Response time: Usually within 24 hours.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Contact form */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name input */}
             <div>
-              <h3 className="text-2xl font-bold mb-6">Contact Information</h3>
-              <div className="space-y-4">
-                {/* Email */}
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-primary-500/20 rounded-lg">
-                    <Mail className="text-primary-500" size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Email</h4>
-                    <a
-                      href={`mailto:${PERSONAL_INFO.email}`}
-                      className="text-dark-muted hover:text-primary-500 transition-colors"
-                    >
-                      {PERSONAL_INFO.email}
-                    </a>
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-primary-500/20 rounded-lg">
-                    <Phone className="text-primary-500" size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Phone</h4>
-                    <a
-                      href={`tel:${PERSONAL_INFO.phone}`}
-                      className="text-dark-muted hover:text-primary-500 transition-colors"
-                    >
-                      {PERSONAL_INFO.phone}
-                    </a>
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-primary-500/20 rounded-lg">
-                    <MapPin className="text-primary-500" size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Location</h4>
-                    <p className="text-dark-muted">{PERSONAL_INFO.location}</p>
-                  </div>
-                </div>
-              </div>
+              <label htmlFor="name" className="block text-sm font-medium mb-2">
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="Your name"
+              />
             </div>
 
-            {/* Why Work With Me */}
-            <div className="glass rounded-lg p-6">
-              <h4 className="font-semibold mb-4 text-primary-500">
-                Why Work With Me?
-              </h4>
-              <ul className="space-y-3 text-dark-muted">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary-500 mt-1">✓</span>
-                  <span>3.5+ years of production DevOps experience</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary-500 mt-1">✓</span>
-                  <span>AWS certified with deep cloud expertise</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary-500 mt-1">✓</span>
-                  <span>Strong focus on automation and efficiency</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary-500 mt-1">✓</span>
-                  <span>Experience with enterprise-scale infrastructure</span>
-                </li>
-              </ul>
+            {/* Email input */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="your.email@example.com"
+              />
             </div>
-          </div>
 
-          {/* Contact Form */}
-          <div>
-            <form onSubmit={handleSubmit} className="glass rounded-lg p-6 space-y-6">
-              {/* Name Input */}
-              <div>
-                <label htmlFor="name" className="block mb-2 font-medium">
-                  Your Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:border-primary-500 focus:outline-none transition-colors"
-                  placeholder="John Doe"
-                />
-              </div>
+            {/* Subject input */}
+            <div>
+              <label htmlFor="subject" className="block text-sm font-medium mb-2">
+                Subject
+              </label>
+              <input
+                type="text"
+                id="subject"
+                name="subject"
+                value={formData.subject}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="How can I help?"
+              />
+            </div>
 
-              {/* Email Input */}
-              <div>
-                <label htmlFor="email" className="block mb-2 font-medium">
-                  Your Email *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:border-primary-500 focus:outline-none transition-colors"
-                  placeholder="john@example.com"
-                />
-              </div>
+            {/* Message textarea */}
+            <div>
+              <label htmlFor="message" className="block text-sm font-medium mb-2">
+                Message
+              </label>
+              <textarea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                required
+                rows={5}
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                placeholder="Your message..."
+              />
+            </div>
 
-              {/* Subject Input */}
-              <div>
-                <label htmlFor="subject" className="block mb-2 font-medium">
-                  Subject *
-                </label>
-                <input
-                  type="text"
-                  id="subject"
-                  name="subject"
-                  value={formData.subject}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:border-primary-500 focus:outline-none transition-colors"
-                  placeholder="Project Inquiry"
-                />
-              </div>
-
-              {/* Message Textarea */}
-              <div>
-                <label htmlFor="message" className="block mb-2 font-medium">
-                  Message *
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  required
-                  rows={6}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:border-primary-500 focus:outline-none transition-colors resize-none"
-                  placeholder="Tell me about your project..."
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full px-6 py-3 bg-primary-500 hover:bg-primary-600 disabled:bg-dark-border disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <span>Sending...</span>
-                ) : (
-                  <>
-                    <Send size={20} />
-                    Send Message
-                  </>
-                )}
-              </button>
-
-              {/* Status Messages */}
-              {submitStatus === 'success' && (
-                <div className="p-4 bg-green-500/20 border border-green-500 rounded-lg text-green-400">
-                  ✓ Message sent successfully! I'll get back to you soon.
-                </div>
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg font-semibold hover:shadow-lg hover:shadow-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <span>Sending...</span>
+              ) : (
+                <>
+                  <Send size={20} />
+                  <span>Send Message</span>
+                </>
               )}
-              {submitStatus === 'error' && (
-                <div className="p-4 bg-red-500/20 border border-red-500 rounded-lg text-red-400">
-                  ✗ Something went wrong. Please try again or email me directly.
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
+            </button>
+
+            {/* Status messages */}
+            {submitStatus === 'success' && (
+              <div className="p-4 bg-green-500/20 border border-green-500/30 rounded-lg text-green-300 text-sm">
+                Thank you! Your message has been sent successfully. I'll get back to you soon.
+              </div>
+            )}
+            {submitStatus === 'error' && (
+              <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
+                Oops! Something went wrong. Please try again or email me directly.
+              </div>
+            )}
+          </form>
+        </motion.div>
       </div>
     </div>
   )
 }
+
+export default Contact
