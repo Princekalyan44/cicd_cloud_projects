@@ -1,115 +1,88 @@
 /**
  * API Client Library
  * Centralized functions for making API calls to backend services
+ * Includes error handling and type safety
  */
 
-import { CHATBOT_CONFIG } from './constants'
+import axios, { AxiosError } from 'axios'
 
-// Chat API types
-interface ChatRequest {
+// Base configuration for API client
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:8080',
+  timeout: 10000, // 10 seconds
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Request interceptor - add authentication if needed
+apiClient.interceptors.request.use(
+  (config) => {
+    // You can add auth tokens here if needed
+    // config.headers.Authorization = `Bearer ${token}`
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Response interceptor - handle errors globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // Log errors to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('API Error:', error.response?.data || error.message)
+    }
+    return Promise.reject(error)
+  }
+)
+
+// Type definitions
+export interface ChatMessage {
   message: string
   sessionId: string
 }
 
-interface ChatResponse {
+export interface ChatResponse {
   response: string
   sources?: string[]
   timestamp: string
 }
 
 /**
- * Send a message to the chatbot API
- * @param message - User's question
+ * Send a message to the chatbot
+ * @param message - User's message
  * @param sessionId - Unique session identifier
- * @returns Chatbot response
+ * @returns Bot's response
  */
 export async function sendChatMessage(
   message: string,
   sessionId: string
 ): Promise<ChatResponse> {
   try {
-    const response = await fetch(`${CHATBOT_CONFIG.apiUrl}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message,
-        sessionId,
-      } as ChatRequest),
+    const response = await apiClient.post<ChatResponse>('/chat', {
+      message,
+      sessionId,
     })
-
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`)
-    }
-
-    const data: ChatResponse = await response.json()
-    return data
+    return response.data
   } catch (error) {
-    console.error('Chat API error:', error)
-    throw error
+    throw new Error('Failed to send message to chatbot')
   }
 }
 
 /**
- * Check health of backend services
- * Useful for monitoring and status pages
+ * Check health of chatbot service
+ * @returns Health status
  */
-export async function checkHealth(): Promise<{
-  frontend: boolean
-  chatbot: boolean
-}> {
-  const health = {
-    frontend: true, // If this runs, frontend is healthy
-    chatbot: false,
-  }
-
+export async function checkChatbotHealth(): Promise<{ status: string }> {
   try {
-    // Check chatbot service health
-    const response = await fetch(`${CHATBOT_CONFIG.apiUrl}/health`, {
-      method: 'GET',
-    })
-    health.chatbot = response.ok
+    const response = await apiClient.get('/health')
+    return response.data
   } catch (error) {
-    console.error('Health check failed:', error)
+    throw new Error('Chatbot service is unavailable')
   }
-
-  return health
 }
 
-/**
- * Contact form submission
- * In production, this would send to an email service or backend API
- * @param formData - Contact form data
- */
-export async function submitContactForm(formData: {
-  name: string
-  email: string
-  subject: string
-  message: string
-}): Promise<{ success: boolean; message: string }> {
-  try {
-    // TODO: Implement actual email sending
-    // Options:
-    // 1. AWS SES (Simple Email Service)
-    // 2. SendGrid
-    // 3. Formspree
-    // 4. Your own backend API
-
-    // Simulated API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    console.log('Contact form submitted:', formData)
-
-    return {
-      success: true,
-      message: 'Message sent successfully!',
-    }
-  } catch (error) {
-    console.error('Contact form error:', error)
-    return {
-      success: false,
-      message: 'Failed to send message. Please try again.',
-    }
-  }
-}
+export default apiClient
