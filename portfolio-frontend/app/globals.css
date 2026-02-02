@@ -1,5 +1,9 @@
-/* Global CSS styles */
-/* TailwindCSS directives */
+/**
+ * Global CSS Styles
+ * Includes Tailwind directives and custom styles
+ */
+
+/* Tailwind CSS layers */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,101 +14,106 @@
   html {
     scroll-behavior: smooth;
   }
-
-  /* Remove default margins and set dark background */
+  
+  /* Default text color and background */
   body {
-    margin: 0;
-    padding: 0;
-    background-color: #0f172a;
-    color: #f1f5f9;
+    @apply text-gray-100 bg-slate-900;
   }
-
-  /* Improve link appearance */
-  a {
-    color: inherit;
-    text-decoration: none;
-    transition: color 0.3s ease;
-  }
-
-  a:hover {
-    color: #0ea5e9;
+  
+  /* Heading styles */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
   }
 }
 
-/* Custom utility classes */
+/* Custom component styles */
+@layer components {
+  /* Button styles */
+  .btn-primary {
+    @apply px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold 
+           hover:bg-blue-700 transition-colors duration-300 
+           shadow-lg hover:shadow-xl;
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 bg-slate-700 text-white rounded-lg font-semibold 
+           hover:bg-slate-600 transition-colors duration-300 
+           border-2 border-slate-600;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-slate-800 rounded-xl p-6 shadow-xl 
+           border border-slate-700 hover:border-blue-500 
+           transition-all duration-300;
+  }
+  
+  /* Section container */
+  .section-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Section title */
+  .section-title {
+    @apply text-4xl font-bold text-center mb-12 
+           bg-clip-text text-transparent 
+           bg-gradient-to-r from-blue-400 to-purple-500;
+  }
+}
+
+/* Custom animations */
 @layer utilities {
-  /* Text gradient effect */
-  .text-gradient {
-    background: linear-gradient(to right, #0ea5e9, #38bdf8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  /* Fade in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-in;
   }
-
-  /* Glassmorphism effect */
-  .glass {
-    background: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(51, 65, 85, 0.5);
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-
-  /* Card hover effect */
-  .card-hover {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  /* Slide in from left */
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out;
   }
-
-  .card-hover:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
-
-  /* Section padding */
-  .section-padding {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+  
+  /* Pulse animation for attention */
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-
-  /* Container for content */
-  .container-custom {
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-/* Animation delays for staggered effects */
-.delay-100 {
-  animation-delay: 100ms;
-}
-
-.delay-200 {
-  animation-delay: 200ms;
-}
-
-.delay-300 {
-  animation-delay: 300ms;
-}
-
-.delay-400 {
-  animation-delay: 400ms;
 }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  @apply bg-slate-900;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  @apply bg-slate-600 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  @apply bg-slate-500;
 }

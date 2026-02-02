@@ -1,6 +1,10 @@
 /**
  * Root Layout Component
- * This wraps all pages and provides global styles and metadata
+ * This wraps all pages and provides:
+ * - HTML structure
+ * - Global styles
+ * - Metadata for SEO
+ * - Font loading
  */
 
 import type { Metadata } from 'next'
@@ -8,26 +12,24 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 
 // Load Inter font from Google Fonts
-// This provides better typography than system fonts
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap', // Shows fallback font while loading
-})
+// This font is used throughout the application
+const inter = Inter({ subsets: ['latin'] })
 
-// SEO Metadata
-// This appears in search results and social media shares
+// Metadata for SEO (Search Engine Optimization)
+// This appears in browser tabs and search results
 export const metadata: Metadata = {
   title: 'Kalyan - DevOps Engineer | Portfolio',
-  description: 'DevOps Engineer with 3.5+ years of experience in Kubernetes, AWS, CI/CD, and cloud infrastructure. Specialized in building scalable, secure systems.',
-  keywords: ['DevOps', 'Kubernetes', 'AWS', 'Docker', 'CI/CD', 'Terraform', 'Engineer'],
+  description: 'DevOps Engineer with 3.5+ years of experience in AWS, Kubernetes, CI/CD, and Infrastructure as Code. Based in Bangalore, India.',
+  keywords: ['DevOps', 'AWS', 'Kubernetes', 'Docker', 'CI/CD', 'Terraform', 'Portfolio'],
   authors: [{ name: 'Kalyan' }],
   openGraph: {
     title: 'Kalyan - DevOps Engineer',
-    description: 'Building scalable cloud infrastructure and automating deployments',
+    description: 'Experienced DevOps Engineer specializing in cloud infrastructure and automation',
     type: 'website',
   },
 }
 
+// Root layout that wraps all pages
 export default function RootLayout({
   children,
 }: {
@@ -36,8 +38,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       {/* scroll-smooth enables smooth scrolling for anchor links */}
-      <body className={`${inter.className} bg-dark-bg text-dark-text antialiased`}>
-        {/* antialiased makes text look smoother */}
+      <body className={inter.className}>
+        {/* Main content of each page goes here */}
         {children}
       </body>
     </html>
