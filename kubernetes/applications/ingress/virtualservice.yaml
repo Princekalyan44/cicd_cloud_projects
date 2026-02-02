@@ -1,0 +1,98 @@
+# Istio VirtualService
+# Routing rules for incoming traffic
+# Defines how requests are routed to backend services
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: portfolio-routes
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+    component: routing
+spec:
+  # Apply to traffic coming through the gateway
+  hosts:
+    - "*"  # Or: portfolio.yourdomain.com
+  
+  gateways:
+    - portfolio-gateway
+  
+  http:
+    # Route 1: Chatbot API endpoints
+    - name: "chatbot-api"
+      match:
+        - uri:
+            prefix: /api/chat
+      # CORS configuration for chatbot API
+      corsPolicy:
+        allowOrigins:
+          - exact: "*"
+        allowMethods:
+          - POST
+          - OPTIONS
+        allowHeaders:
+          - content-type
+          - authorization
+        maxAge: 24h
+      # Route to chatbot service
+      route:
+        - destination:
+            host: portfolio-chatbot.portfolio-prod.svc.cluster.local
+            port:
+              number: 8080
+          weight: 100
+      # Retry configuration
+      retries:
+        attempts: 3
+        perTryTimeout: 10s
+        retryOn: 5xx,reset,connect-failure,refused-stream
+      # Timeout
+      timeout: 30s
+    
+    # Route 2: Health checks (direct, no retries)
+    - name: "health-checks"
+      match:
+        - uri:
+            prefix: /api/health
+      route:
+        - destination:
+            host: portfolio-frontend.portfolio-prod.svc.cluster.local
+            port:
+              number: 80
+      timeout: 5s
+    
+    # Route 3: Static assets (cache)
+    - name: "static-assets"
+      match:
+        - uri:
+            prefix: /_next/static
+        - uri:
+            prefix: /static
+        - uri:
+            regex: "^.*\\.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf)$"
+      route:
+        - destination:
+            host: portfolio-frontend.portfolio-prod.svc.cluster.local
+            port:
+              number: 80
+      # Add cache headers
+      headers:
+        response:
+          set:
+            cache-control: "public, max-age=31536000, immutable"
+      timeout: 10s
+    
+    # Route 4: All other traffic to frontend (default route)
+    - name: "frontend-default"
+      route:
+        - destination:
+            host: portfolio-frontend.portfolio-prod.svc.cluster.local
+            port:
+              number: 80
+          weight: 100
+      # Retry configuration
+      retries:
+        attempts: 2
+        perTryTimeout: 5s
+      timeout: 15s

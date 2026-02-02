@@ -1,0 +1,37 @@
+# Kustomize Configuration for Staging Environment
+# Mirrors production but with lower resource allocation
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: portfolio-staging
+
+commonLabels:
+  environment: staging
+  managed-by: kustomize
+
+resources:
+  - ../../base/namespaces/namespaces.yaml
+  - ../../base/storage/storage-class.yaml
+  - ../../applications/postgres/
+  - ../../applications/frontend/
+  - ../../applications/chatbot/
+  - ../../applications/ingress/
+
+patchesStrategicMerge:
+  - replica-count.yaml
+
+configMapGenerator:
+  - name: frontend-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=info
+      - FEATURE_ANALYTICS=true
+
+images:
+  - name: portfolio-frontend
+    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-frontend
+    newTag: staging-latest
+  - name: portfolio-chatbot
+    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-chatbot
+    newTag: staging-latest

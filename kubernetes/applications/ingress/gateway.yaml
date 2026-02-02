@@ -1,0 +1,44 @@
+# Istio Gateway
+# Entry point for external traffic into the service mesh
+# Configures load balancer and TLS termination
+
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: portfolio-gateway
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+    component: ingress
+spec:
+  # Use Istio's default ingress gateway
+  selector:
+    istio: ingressgateway
+  
+  servers:
+    # HTTP server (redirect to HTTPS)
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"  # Accept all hosts (or specify your domain)
+      # Redirect HTTP to HTTPS
+      tls:
+        httpsRedirect: true
+    
+    # HTTPS server
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*"  # Or: portfolio.yourdomain.com
+      tls:
+        mode: SIMPLE  # TLS termination at gateway
+        # Certificate from cert-manager (or AWS ACM)
+        credentialName: portfolio-tls-cert
+        minProtocolVersion: TLSV1_2
+        cipherSuites:
+          - ECDHE-RSA-AES256-GCM-SHA384
+          - ECDHE-RSA-AES128-GCM-SHA256
