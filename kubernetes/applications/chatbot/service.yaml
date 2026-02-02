@@ -1,0 +1,30 @@
+# Chatbot Service
+# Internal service for frontend to communicate with chatbot
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-chatbot
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-chatbot
+    component: application
+  annotations:
+    description: "AI chatbot service with RAG"
+spec:
+  type: ClusterIP
+  
+  # Session affinity for conversation continuity
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600  # 1 hour session
+  
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  
+  selector:
+    app: portfolio-chatbot

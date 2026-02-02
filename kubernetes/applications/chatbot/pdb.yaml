@@ -1,0 +1,14 @@
+# Pod Disruption Budget for Chatbot
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: portfolio-chatbot-pdb
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-chatbot
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: portfolio-chatbot

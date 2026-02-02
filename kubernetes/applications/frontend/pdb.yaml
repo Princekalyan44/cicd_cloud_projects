@@ -1,0 +1,17 @@
+# Pod Disruption Budget for Frontend
+# Ensures minimum availability during voluntary disruptions
+# (node drains, cluster upgrades, etc.)
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: portfolio-frontend-pdb
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-frontend
+spec:
+  minAvailable: 1  # Always keep at least 1 pod running
+  
+  selector:
+    matchLabels:
+      app: portfolio-frontend

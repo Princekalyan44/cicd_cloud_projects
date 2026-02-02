@@ -1,0 +1,162 @@
+# Portfolio Frontend Deployment
+# Next.js application serving the portfolio website
+# Production-ready with health checks, autoscaling, and resource limits
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-frontend
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-frontend
+    component: application
+    tier: frontend
+spec:
+  # HPA will manage replicas
+  replicas: 2  # Minimum replicas
+  
+  # Rolling update strategy for zero-downtime deployments
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0  # Always maintain minimum replicas
+      maxSurge: 1        # Add one extra pod during updates
+  
+  selector:
+    matchLabels:
+      app: portfolio-frontend
+  
+  template:
+    metadata:
+      labels:
+        app: portfolio-frontend
+        component: application
+        tier: frontend
+        version: v1  # For canary deployments
+        external-access: "true"  # Needs external API access
+      annotations:
+        # Prometheus metrics scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/metrics"
+        
+        # Force pod restart on configmap/secret changes
+        checksum/config: "{{ include (print $.Template.BasePath \"/configmap.yaml\") . | sha256sum }}"
+    spec:
+      # Use dedicated service account
+      serviceAccountName: portfolio-frontend
+      
+      # Security context for pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Anti-affinity to spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - portfolio-frontend
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: frontend
+          # Image will be updated by CI/CD pipeline
+          image: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-frontend:latest
+          imagePullPolicy: Always
+          
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          
+          # Environment variables
+          env:
+            - name: NODE_ENV
+              value: "production"
+            
+            - name: NEXT_PUBLIC_CHATBOT_API_URL
+              value: "http://portfolio-chatbot:8080"
+            
+            - name: PORT
+              value: "3000"
+          
+          # Environment from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: frontend-config
+          
+          # Resource requests and limits
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          
+          # Liveness probe (restart if unhealthy)
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          
+          # Readiness probe (don't send traffic if not ready)
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+            successThreshold: 1
+          
+          # Startup probe (give extra time for initial startup)
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12  # 60 seconds total (12 * 5s)
+          
+          # Security context for container
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false  # Next.js needs write access for cache
+          
+          # Lifecycle hooks
+          lifecycle:
+            preStop:
+              exec:
+                # Graceful shutdown - wait 10s before SIGTERM
+                command: ["/bin/sh", "-c", "sleep 10"]
+      
+      # Graceful termination period
+      terminationGracePeriodSeconds: 30
+      
+      # DNS configuration
+      dnsPolicy: ClusterFirst
