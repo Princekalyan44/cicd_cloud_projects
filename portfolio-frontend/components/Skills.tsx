@@ -1,108 +1,166 @@
 /**
  * Skills Section Component
- * Displays technical skills organized by category with proficiency levels
+ * Displays technical skills with visual proficiency indicators
+ * Organized by categories (Cloud, DevOps, Languages, etc.)
  */
 
 'use client'
 
-import { SKILLS } from '@/lib/constants'
+import { motion } from 'framer-motion'
+import { Cloud, Server, Code, Database, Shield, GitBranch } from 'lucide-react'
 
-// Helper function to render skill proficiency as bars
-const SkillLevel = ({ level }: { level: number }) => {
+// Define skill categories with icons and items
+const skillCategories = [
+  {
+    icon: Cloud,
+    title: 'Cloud Platforms',
+    color: 'from-blue-400 to-cyan-400',
+    skills: [
+      { name: 'AWS (EKS, EC2, S3, RDS, Lambda)', level: 90 },
+      { name: 'Azure', level: 60 },
+      { name: 'Google Cloud', level: 50 },
+    ],
+  },
+  {
+    icon: Server,
+    title: 'Container & Orchestration',
+    color: 'from-purple-400 to-pink-400',
+    skills: [
+      { name: 'Kubernetes', level: 90 },
+      { name: 'Docker', level: 95 },
+      { name: 'Helm', level: 85 },
+      { name: 'Istio', level: 70 },
+    ],
+  },
+  {
+    icon: GitBranch,
+    title: 'CI/CD & Automation',
+    color: 'from-green-400 to-emerald-400',
+    skills: [
+      { name: 'Jenkins', level: 85 },
+      { name: 'GitLab CI', level: 80 },
+      { name: 'GitHub Actions', level: 90 },
+      { name: 'ArgoCD', level: 85 },
+    ],
+  },
+  {
+    icon: Code,
+    title: 'Infrastructure as Code',
+    color: 'from-orange-400 to-red-400',
+    skills: [
+      { name: 'Terraform', level: 85 },
+      { name: 'Ansible', level: 75 },
+      { name: 'CloudFormation', level: 60 },
+    ],
+  },
+  {
+    icon: Database,
+    title: 'Monitoring & Observability',
+    color: 'from-yellow-400 to-orange-400',
+    skills: [
+      { name: 'Prometheus', level: 85 },
+      { name: 'Grafana', level: 85 },
+      { name: 'ELK Stack', level: 70 },
+      { name: 'Datadog', level: 60 },
+    ],
+  },
+  {
+    icon: Shield,
+    title: 'Security & Compliance',
+    color: 'from-red-400 to-rose-400',
+    skills: [
+      { name: 'Vault', level: 75 },
+      { name: 'Kyverno', level: 70 },
+      { name: 'Trivy', level: 80 },
+      { name: 'AWS WAF', level: 70 },
+    ],
+  },
+]
+
+const Skills = () => {
   return (
-    <div className="flex gap-1">
-      {[...Array(5)].map((_, index) => (
-        <div
-          key={index}
-          className={`h-2 w-8 rounded-full ${
-            index < level ? 'bg-primary-500' : 'bg-dark-border'
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Section header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        viewport={{ once: true }}
+        className="text-center mb-16"
+      >
+        <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <span className="gradient-text">Technical Skills</span>
+        </h2>
+        <p className="text-slate-400 text-lg">
+          Technologies and tools I work with daily
+        </p>
+      </motion.div>
 
-export default function Skills() {
-  // Organize skills into sections
-  const skillSections = [
-    { title: 'Cloud & AWS', skills: SKILLS.cloud },
-    { title: 'Containers & Orchestration', skills: SKILLS.containers },
-    { title: 'CI/CD', skills: SKILLS.cicd },
-    { title: 'Infrastructure as Code', skills: SKILLS.iac },
-    { title: 'Monitoring & Observability', skills: SKILLS.monitoring },
-    { title: 'Programming Languages', skills: SKILLS.languages },
-    { title: 'Operating Systems', skills: SKILLS.os },
-  ]
-
-  return (
-    <div className="section-padding bg-dark-bg">
-      <div className="container-custom">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Technical <span className="text-gradient">Skills</span>
-          </h2>
-          <p className="text-dark-muted text-lg max-w-2xl mx-auto">
-            Technologies and tools I work with daily to build scalable,
-            reliable infrastructure
-          </p>
-        </div>
-
-        {/* Skills Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {skillSections.map((section, sectionIndex) => (
-            <div
-              key={section.title}
-              className="glass rounded-lg p-6 card-hover animate-fade-in-up"
-              style={{ animationDelay: `${sectionIndex * 100}ms` }}
+      {/* Skills grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {skillCategories.map((category, categoryIndex) => {
+          const Icon = category.icon
+          
+          return (
+            <motion.div
+              key={category.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: categoryIndex * 0.1 }}
+              viewport={{ once: true }}
+              className="glass rounded-xl p-6 hover:bg-white/10 transition-all"
             >
-              {/* Category Title */}
-              <h3 className="text-xl font-semibold mb-6 text-primary-500">
-                {section.title}
-              </h3>
+              {/* Category header with icon */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`p-3 rounded-lg bg-gradient-to-r ${category.color}`}>
+                  <Icon size={24} className="text-white" />
+                </div>
+                <h3 className="text-xl font-semibold">{category.title}</h3>
+              </div>
 
-              {/* Skills List */}
+              {/* Individual skills with progress bars */}
               <div className="space-y-4">
-                {section.skills.map((skill) => (
+                {category.skills.map((skill, skillIndex) => (
                   <div key={skill.name}>
-                    {/* Skill Name and Icon */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="flex items-center gap-2">
-                        <span className="text-xl">{skill.icon}</span>
-                        <span className="font-medium">{skill.name}</span>
-                      </span>
+                    {/* Skill name and percentage */}
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-slate-300">{skill.name}</span>
+                      <span className="text-slate-400">{skill.level}%</span>
                     </div>
                     
-                    {/* Proficiency Level */}
-                    <SkillLevel level={skill.level} />
+                    {/* Progress bar */}
+                    <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${skill.level}%` }}
+                        transition={{ duration: 1, delay: categoryIndex * 0.1 + skillIndex * 0.1 }}
+                        viewport={{ once: true }}
+                        className={`h-full bg-gradient-to-r ${category.color} rounded-full`}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Skills Summary Stats */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary-500 mb-2">3.5+</div>
-            <div className="text-dark-muted">Years Experience</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary-500 mb-2">50+</div>
-            <div className="text-dark-muted">Projects Deployed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary-500 mb-2">100+</div>
-            <div className="text-dark-muted">AWS Resources Managed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-primary-500 mb-2">24/7</div>
-            <div className="text-dark-muted">System Uptime</div>
-          </div>
-        </div>
+            </motion.div>
+          )
+        })}
       </div>
+
+      {/* Additional skills section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        viewport={{ once: true }}
+        className="mt-12 text-center"
+      >
+        <p className="text-slate-400">
+          <span className="font-semibold text-slate-300">Other skills:</span>{' '}
+          Python, Bash, YAML, JSON, Linux (RHEL/Ubuntu), Networking, Git, JIRA, Agile
+        </p>
+      </motion.div>
     </div>
   )
 }
+
+export default Skills

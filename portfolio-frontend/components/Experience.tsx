@@ -1,87 +1,140 @@
 /**
  * Experience Section Component
- * Displays work history in a timeline format
+ * Timeline view of work experience
+ * Shows company, role, duration, and responsibilities
  */
 
 'use client'
 
+import { motion } from 'framer-motion'
 import { Briefcase, Calendar, MapPin } from 'lucide-react'
-import { EXPERIENCE, CERTIFICATIONS, EDUCATION } from '@/lib/constants'
 
-export default function Experience() {
+// Work experience data
+const experiences = [
+  {
+    company: 'Justdial Ltd.',
+    role: 'DevOps Engineer',
+    duration: 'June 2022 - January 2026',
+    location: 'Bangalore, India',
+    type: 'Full-time',
+    description: 'Leading DevOps initiatives for a large-scale B2B platform serving millions of users.',
+    responsibilities: [
+      'Managed and optimized Kubernetes clusters (EKS) handling 10,000+ daily requests',
+      'Implemented GitLab CI/CD pipelines reducing deployment time by 60%',
+      'Configured comprehensive monitoring with Prometheus and Grafana for 50+ microservices',
+      'Automated infrastructure provisioning using Terraform, managing 100+ AWS resources',
+      'Led migration from monolithic to microservices architecture',
+      'Performed Linux/RHEL system administration and troubleshooting',
+      'Collaborated with development teams to implement DevOps best practices',
+    ],
+    technologies: ['Kubernetes', 'AWS', 'GitLab CI', 'Terraform', 'Prometheus', 'Docker', 'Linux'],
+  },
+  {
+    company: 'Tech Mahindra',
+    role: 'Associate Software Engineer',
+    duration: 'January 2021 - May 2022',
+    location: 'Bangalore, India',
+    type: 'Full-time',
+    description: 'Started career as a software engineer, transitioned to DevOps role.',
+    responsibilities: [
+      'Developed and maintained CI/CD pipelines using Jenkins',
+      'Containerized legacy applications using Docker',
+      'Managed version control with Git and code reviews',
+      'Automated deployment processes and server configurations',
+      'Provided technical support for development and QA teams',
+    ],
+    technologies: ['Jenkins', 'Docker', 'Git', 'Linux', 'Shell Scripting'],
+  },
+]
+
+const Experience = () => {
   return (
-    <div className="section-padding bg-dark-card">
-      <div className="container-custom">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Professional <span className="text-gradient">Journey</span>
-          </h2>
-          <p className="text-dark-muted text-lg max-w-2xl mx-auto">
-            My career path in DevOps and cloud infrastructure
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Section header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        viewport={{ once: true }}
+        className="text-center mb-16"
+      >
+        <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <span className="gradient-text">Work Experience</span>
+        </h2>
+        <p className="text-slate-400 text-lg">
+          3.5+ years of professional DevOps experience
+        </p>
+      </motion.div>
 
-        {/* Work Experience Timeline */}
-        <div className="max-w-4xl mx-auto">
-          <h3 className="text-2xl font-bold mb-8 flex items-center gap-2">
-            <Briefcase className="text-primary-500" />
-            Work Experience
-          </h3>
+      {/* Timeline */}
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-0 md:left-1/2 transform md:-translate-x-1/2 h-full w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500" />
 
-          <div className="space-y-8">
-            {EXPERIENCE.map((job, index) => (
-              <div
-                key={index}
-                className="relative pl-8 pb-8 border-l-2 border-primary-500/30 last:pb-0 animate-fade-in-up"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                {/* Timeline Dot */}
-                <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-primary-500" />
+        {/* Experience cards */}
+        <div className="space-y-12">
+          {experiences.map((exp, index) => (
+            <motion.div
+              key={exp.company}
+              initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.2 }}
+              viewport={{ once: true }}
+              className={`relative flex items-center ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}`}
+            >
+              {/* Timeline dot */}
+              <div className="absolute left-0 md:left-1/2 transform md:-translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-4 border-slate-900 z-10" />
 
-                {/* Job Card */}
-                <div className="glass rounded-lg p-6 card-hover">
-                  {/* Company & Role */}
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+              {/* Content card */}
+              <div className={`ml-8 md:ml-0 md:w-5/12 ${index % 2 === 0 ? 'md:mr-auto md:pr-8' : 'md:ml-auto md:pl-8'}`}>
+                <div className="glass rounded-xl p-6 hover:bg-white/10 transition-all">
+                  {/* Company and role */}
+                  <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h4 className="text-2xl font-bold text-primary-500">
-                        {job.role}
-                      </h4>
-                      <p className="text-xl font-semibold">{job.company}</p>
+                      <h3 className="text-2xl font-bold text-white mb-1">
+                        {exp.company}
+                      </h3>
+                      <p className="text-lg text-blue-400 font-semibold">
+                        {exp.role}
+                      </p>
                     </div>
+                    <Briefcase className="text-purple-400" size={24} />
                   </div>
 
-                  {/* Duration & Location */}
-                  <div className="flex flex-wrap gap-4 mb-4 text-dark-muted">
+                  {/* Duration and location */}
+                  <div className="flex flex-wrap gap-4 mb-4 text-sm text-slate-400">
                     <div className="flex items-center gap-2">
                       <Calendar size={16} />
-                      <span>{job.duration}</span>
+                      <span>{exp.duration}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin size={16} />
-                      <span>{job.location}</span>
+                      <span>{exp.location}</span>
                     </div>
                   </div>
 
                   {/* Description */}
-                  <p className="text-dark-muted mb-4">{job.description}</p>
+                  <p className="text-slate-300 mb-4">{exp.description}</p>
 
                   {/* Responsibilities */}
-                  <ul className="space-y-2 mb-4">
-                    {job.responsibilities.map((resp, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-dark-muted">
-                        <span className="text-primary-500 mt-1">•</span>
-                        <span>{resp}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold text-slate-300 mb-2">Key Responsibilities:</h4>
+                    <ul className="space-y-2">
+                      {exp.responsibilities.map((resp, i) => (
+                        <li key={i} className="text-sm text-slate-400 flex items-start">
+                          <span className="text-blue-400 mr-2">•</span>
+                          <span>{resp}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {/* Technologies */}
                   <div className="flex flex-wrap gap-2">
-                    {job.technologies.map((tech) => (
+                    {exp.technologies.map((tech) => (
                       <span
                         key={tech}
-                        className="px-3 py-1 bg-primary-500/20 text-primary-400 rounded-full text-sm"
+                        className="px-3 py-1 text-xs bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30"
                       >
                         {tech}
                       </span>
@@ -89,54 +142,60 @@ export default function Experience() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </motion.div>
+          ))}
         </div>
+      </div>
 
-        {/* Certifications & Education Grid */}
-        <div className="max-w-4xl mx-auto mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Certifications section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        viewport={{ once: true }}
+        className="mt-16 glass rounded-xl p-8"
+      >
+        <h3 className="text-2xl font-bold mb-6 text-center">
+          <span className="gradient-text">Certifications & Education</span>
+        </h3>
+        
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Certifications */}
           <div>
-            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span className="text-primary-500">🏆</span>
-              Certifications
-            </h3>
-            <div className="space-y-4">
-              {CERTIFICATIONS.map((cert, index) => (
-                <div
-                  key={index}
-                  className="glass rounded-lg p-4 card-hover"
-                >
-                  <h4 className="font-semibold text-primary-500 mb-1">
-                    {cert.name}
-                  </h4>
-                  <p className="text-sm text-dark-muted mb-1">{cert.issuer}</p>
-                  <p className="text-sm text-dark-muted">{cert.date}</p>
-                </div>
-              ))}
-            </div>
+            <h4 className="text-lg font-semibold text-white mb-3">Certifications</h4>
+            <ul className="space-y-2">
+              <li className="text-slate-300 flex items-start">
+                <span className="text-green-400 mr-2">✓</span>
+                <span>
+                  <strong>AWS Certified Solutions Architect</strong>
+                  <br />
+                  <span className="text-sm text-slate-400">Valid through 2026</span>
+                </span>
+              </li>
+              <li className="text-slate-300 flex items-start">
+                <span className="text-yellow-400 mr-2">⏳</span>
+                <span>
+                  <strong>Certified Kubernetes Administrator (CKA)</strong>
+                  <br />
+                  <span className="text-sm text-slate-400">In preparation</span>
+                </span>
+              </li>
+            </ul>
           </div>
 
           {/* Education */}
           <div>
-            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              <span className="text-primary-500">🎓</span>
-              Education
-            </h3>
-            <div className="glass rounded-lg p-4 card-hover">
-              <h4 className="font-semibold text-primary-500 mb-2">
-                {EDUCATION.degree}
-              </h4>
-              <p className="text-dark-muted mb-1">{EDUCATION.institution}</p>
-              <div className="flex items-center gap-4 text-sm text-dark-muted">
-                <span>{EDUCATION.duration}</span>
-                <span>•</span>
-                <span>CGPA: {EDUCATION.cgpa}</span>
-              </div>
+            <h4 className="text-lg font-semibold text-white mb-3">Education</h4>
+            <div className="text-slate-300">
+              <p className="font-semibold">B.E. Computer Science</p>
+              <p className="text-sm text-slate-400">Dr. Ambedkar Institute of Technology</p>
+              <p className="text-sm text-slate-400">2017 - 2020 | CGPA: 7.52/10</p>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
+
+export default Experience
