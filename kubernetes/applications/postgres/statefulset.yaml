@@ -1,0 +1,174 @@
+# PostgreSQL StatefulSet
+# Stateful deployment for database with persistent storage
+# Using StatefulSet for stable network identity and storage
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: portfolio-prod
+  labels:
+    app: postgres
+    component: database
+spec:
+  # Service name for stable network identity
+  serviceName: postgres
+  
+  # Single replica (or use RDS for managed PostgreSQL)
+  replicas: 1
+  
+  selector:
+    matchLabels:
+      app: postgres
+  
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: database
+      annotations:
+        # Prometheus metrics scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      # Service account
+      serviceAccountName: default
+      
+      # Security context for pod
+      securityContext:
+        fsGroup: 999  # postgres group
+        runAsUser: 999  # postgres user
+        runAsNonRoot: true
+      
+      containers:
+        - name: postgres
+          image: postgres:15.4-alpine
+          imagePullPolicy: IfNotPresent
+          
+          # Environment variables
+          env:
+            # Database name
+            - name: POSTGRES_DB
+              value: "portfolio"
+            
+            # Username (from secret)
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: username
+            
+            # Password (from secret)
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            
+            # Enable pgvector extension
+            - name: POSTGRES_INITDB_ARGS
+              value: "-c shared_preload_libraries=vector"
+          
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          
+          # Volume mounts
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres  # Store data in subpath
+            
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          
+          # Resource requests and limits
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          
+          # Liveness probe (check if postgres is alive)
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # Readiness probe (check if postgres is ready for connections)
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+        
+        # Postgres Exporter sidecar for Prometheus metrics
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:v0.12.0
+          imagePullPolicy: IfNotPresent
+          
+          env:
+            # Connection string for exporter
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/portfolio?sslmode=disable"
+            
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: username
+            
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+          
+          ports:
+            - name: metrics
+              containerPort: 9187
+              protocol: TCP
+          
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      
+      # Volumes
+      volumes:
+        # ConfigMap with initialization scripts
+        - name: init-scripts
+          configMap:
+            name: postgres-init-scripts
+  
+  # Volume claim templates (persistent storage)
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+        labels:
+          app: postgres
+      spec:
+        accessModes:
+          - ReadWriteOnce  # Single node access
+        storageClassName: gp3-encrypted
+        resources:
+          requests:
+            storage: 20Gi  # 20 GB storage
