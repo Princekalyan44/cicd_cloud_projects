@@ -1,0 +1,82 @@
+# AWS Load Balancer Controller Ingress
+# Creates Application Load Balancer for external access
+# Uses AWS Load Balancer Controller (installed via Helm)
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portfolio-ingress
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+  annotations:
+    # ALB Controller annotations
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip  # Use IP mode for better integration
+    
+    # SSL/TLS configuration
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:ACCOUNT_ID:certificate/CERTIFICATE_ID
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'  # Redirect HTTP to HTTPS
+    
+    # Health check configuration
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-path: /api/health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+    
+    # Target group settings
+    alb.ingress.kubernetes.io/target-group-attributes: |
+      stickiness.enabled=true,
+      stickiness.lb_cookie.duration_seconds=3600,
+      deregistration_delay.timeout_seconds=30
+    
+    # Tags for cost tracking
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Project=portfolio,
+      ManagedBy=kubernetes
+    
+    # WAF integration
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:ap-south-1:ACCOUNT_ID:regional/webacl/portfolio-waf/WEB_ACL_ID
+    
+    # Load balancer attributes
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      idle_timeout.timeout_seconds=60,
+      routing.http2.enabled=true,
+      routing.http.drop_invalid_header_fields.enabled=true
+    
+    # Security groups
+    alb.ingress.kubernetes.io/security-groups: sg-SECURITY_GROUP_ID
+    
+    # Subnets (public subnets for internet-facing ALB)
+    alb.ingress.kubernetes.io/subnets: subnet-PUBLIC_SUBNET_1,subnet-PUBLIC_SUBNET_2,subnet-PUBLIC_SUBNET_3
+spec:
+  rules:
+    - host: portfolio.example.com  # Replace with your domain
+      http:
+        paths:
+          # Route to frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+    
+    # Optional: Direct chatbot access (if needed)
+    # - host: api.portfolio.example.com
+    #   http:
+    #     paths:
+    #       - path: /chat
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: chatbot
+    #             port:
+    #               number: 8080
