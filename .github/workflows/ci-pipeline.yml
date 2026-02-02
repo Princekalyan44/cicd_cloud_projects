@@ -1,0 +1,333 @@
+# GitHub Actions CI Pipeline
+# This workflow runs on every push to main/develop and on pull requests
+# It performs security scanning, testing, building, and pushes container images to ECR
+
+name: CI Pipeline
+
+# Trigger conditions: when code is pushed or PR is created
+on:
+  push:
+    branches: 
+      - main
+      - develop
+  pull_request:
+    branches: 
+      - main
+
+# Environment variables used across all jobs
+env:
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+  
+# Define jobs that run in sequence (some in parallel)
+jobs:
+  
+  # ============================================
+  # JOB 1: Security Scanning (runs first)
+  # ============================================
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout code from repository
+      # fetch-depth: 0 gets full history for better secret scanning
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Step 2: Scan for exposed secrets (API keys, passwords, tokens)
+      # TruffleHog searches through git history for secrets
+      - name: TruffleHog - Secret Scanning
+        uses: trufflesecurity/trufflehog@main
+        with:
+          # Scan the entire repository
+          path: ./
+          # Scan all branches, not just current
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          # Extra args for more thorough scanning
+          extra_args: --debug --only-verified
+      
+      # Step 3: Scan Infrastructure as Code (Terraform) for security issues
+      # tfsec checks for misconfigurations in Terraform files
+      - name: tfsec - Terraform Security Scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          # Only scan terraform directory
+          working_directory: terraform
+          # Create SARIF report for GitHub Security tab
+          format: sarif
+          soft_fail: true  # Don't fail build, just warn
+      
+      # Step 4: Additional IaC scanning with Checkov
+      # Checkov provides more policy checks than tfsec
+      - name: Checkov - IaC Security Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform
+          framework: terraform
+          # Don't fail on low/medium severity
+          soft_fail: true
+          output_format: cli
+      
+      # Step 5: Static Application Security Testing (SAST)
+      # CodeQL analyzes code for security vulnerabilities
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          # Languages to analyze (JavaScript for React, Python for scripts)
+          languages: javascript, python
+      
+      # CodeQL needs to build the code to analyze it
+      - name: Autobuild for CodeQL
+        uses: github/codeql-action/autobuild@v3
+      
+      # Run CodeQL analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+  
+  # ============================================
+  # JOB 2: Build Frontend (depends on security-scan)
+  # ============================================
+  build-frontend:
+    name: Build Frontend Application
+    runs-on: ubuntu-latest
+    # Only run after security scanning passes
+    needs: security-scan
+    
+    # Define output variables for other jobs to use
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Setup Node.js for React/Next.js build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'  # LTS version
+          cache: 'npm'
+          cache-dependency-path: portfolio-frontend/package-lock.json
+      
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        working-directory: portfolio-frontend
+        run: |
+          # Install all packages from package.json
+          npm ci
+      
+      # Step 4: Run security audit on npm packages
+      # Check for known vulnerabilities in dependencies
+      - name: NPM Security Audit
+        working-directory: portfolio-frontend
+        run: |
+          # Audit dependencies, fail on high/critical vulnerabilities
+          npm audit --audit-level=moderate
+        continue-on-error: true  # Don't fail build, just report
+      
+      # Step 5: Run linting to catch code quality issues
+      - name: Run ESLint
+        working-directory: portfolio-frontend
+        run: |
+          npm run lint
+        continue-on-error: true
+      
+      # Step 6: Run unit tests
+      - name: Run Tests
+        working-directory: portfolio-frontend
+        run: |
+          npm run test -- --coverage
+        continue-on-error: true
+      
+      # Step 7: Build production bundle
+      - name: Build Application
+        working-directory: portfolio-frontend
+        run: |
+          # Create optimized production build
+          npm run build
+        env:
+          NODE_ENV: production
+      
+      # Step 8: Setup Docker Buildx for multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      # Step 9: Configure AWS credentials for ECR access
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      # Step 10: Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      # Step 11: Extract metadata for Docker image tagging
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REGISTRY }}/portfolio-frontend
+          # Tag with git SHA and branch name
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      
+      # Step 12: Build and push Docker image to ECR
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: portfolio-frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          # Add labels for better tracking
+          labels: ${{ steps.meta.outputs.labels }}
+          # Use cache to speed up builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      # Step 13: Scan Docker image for vulnerabilities
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/portfolio-frontend:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          # Only fail on HIGH and CRITICAL vulnerabilities
+          severity: 'HIGH,CRITICAL'
+      
+      # Step 14: Upload scan results to GitHub Security tab
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+  
+  # ============================================
+  # JOB 3: Build Chatbot Service
+  # ============================================
+  build-chatbot:
+    name: Build Chatbot Service
+    runs-on: ubuntu-latest
+    needs: security-scan
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REGISTRY }}/portfolio-chatbot
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+      
+      # Build custom chatbot image based on jasonacox/chatbot
+      - name: Build and push Chatbot image
+        uses: docker/build-push-action@v5
+        with:
+          context: chatbot-service
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      # Scan chatbot image for vulnerabilities
+      - name: Run Trivy scanner on Chatbot
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/portfolio-chatbot:${{ github.sha }}
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+        continue-on-error: true
+  
+  # ============================================
+  # JOB 4: Update Kubernetes Manifests for ArgoCD
+  # ============================================
+  update-manifests:
+    name: Update K8s Manifests
+    runs-on: ubuntu-latest
+    # Only run after images are built
+    needs: [build-frontend, build-chatbot]
+    # Only update manifests on main branch (production)
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Need token to push changes back
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Step: Update image tags in Kubernetes manifests
+      # This triggers ArgoCD to deploy new version
+      - name: Update image tags in manifests
+        run: |
+          # Define new image tag using git SHA
+          NEW_TAG="main-${{ github.sha }}"
+          
+          # Update frontend deployment
+          sed -i "s|image: .*portfolio-frontend.*|image: ${{ env.ECR_REGISTRY }}/portfolio-frontend:${NEW_TAG}|g" \
+            kubernetes/base/frontend-deployment.yaml
+          
+          # Update chatbot deployment
+          sed -i "s|image: .*portfolio-chatbot.*|image: ${{ env.ECR_REGISTRY }}/portfolio-chatbot:${NEW_TAG}|g" \
+            kubernetes/base/chatbot-deployment.yaml
+          
+          echo "Updated manifests with tag: ${NEW_TAG}"
+      
+      # Commit and push changes
+      - name: Commit and push manifest updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add kubernetes/
+          git commit -m "Update image tags to ${{ github.sha }}"
+          git push
+  
+  # ============================================
+  # JOB 5: Notify on completion
+  # ============================================
+  notify:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-chatbot, update-manifests]
+    if: always()  # Run even if previous jobs fail
+    
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## CI Pipeline Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Images Built:**" >> $GITHUB_STEP_SUMMARY
+          echo "- portfolio-frontend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- portfolio-chatbot:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

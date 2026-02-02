@@ -1,0 +1,79 @@
+# Terraform Apply Workflow
+# This workflow deploys infrastructure changes when code is merged to main
+# Use with caution - this modifies real AWS resources!
+
+name: Terraform Apply
+
+# Trigger: Only on push to main branch
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  terraform-apply:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    
+    # Require manual approval for production deployments
+    environment:
+      name: production
+      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    
+    defaults:
+      run:
+        working-directory: terraform
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+      
+      # Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+      
+      # Validate configuration
+      - name: Terraform Validate
+        run: terraform validate
+      
+      # Create execution plan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+      
+      # Apply the plan (deploy infrastructure)
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+      
+      # Save outputs for later use
+      - name: Export Terraform Outputs
+        run: |
+          terraform output -json > outputs.json
+          echo "## Infrastructure Deployed! ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**EKS Cluster:** $(terraform output -raw eks_cluster_name)" >> $GITHUB_STEP_SUMMARY
+          echo "**ALB DNS:** $(terraform output -raw alb_dns_name)" >> $GITHUB_STEP_SUMMARY
+      
+      # Upload outputs as artifact
+      - name: Upload Terraform outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs
+          path: terraform/outputs.json
+          retention-days: 30
