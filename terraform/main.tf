@@ -1,23 +1,6 @@
 # Main Terraform Configuration
 # This file orchestrates all modules to build the complete infrastructure
 
-locals {
-  name_prefix = "${var.project_name}-${var.environment}"
-  
-  common_tags = merge(
-    var.additional_tags,
-    {
-      Terraform   = "true"
-      Environment = var.environment
-      Project     = var.project_name
-    }
-  )
-}
-
-# Data sources
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-
 # VPC Module
 module "vpc" {
   source = "./modules/vpc"
