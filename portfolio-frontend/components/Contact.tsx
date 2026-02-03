@@ -69,7 +69,7 @@ const Contact = () => {
           <span className="gradient-text">Get In Touch</span>
         </h2>
         <p className="text-slate-400 text-lg">
-          Let's discuss how I can help with your DevOps needs
+          Let&apos;s discuss how I can help with your DevOps needs
         </p>
       </motion.div>
 
@@ -227,7 +227,7 @@ const Contact = () => {
             {/* Status messages */}
             {submitStatus === 'success' && (
               <div className="p-4 bg-green-500/20 border border-green-500/30 rounded-lg text-green-300 text-sm">
-                Thank you! Your message has been sent successfully. I'll get back to you soon.
+                Thank you! Your message has been sent successfully. I&apos;ll get back to you soon.
               </div>
             )}
             {submitStatus === 'error' && (

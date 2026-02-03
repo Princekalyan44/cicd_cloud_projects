@@ -27,7 +27,7 @@ const Hero = () => {
           transition={{ duration: 0.5 }}
         >
           <p className="text-blue-400 text-lg md:text-xl mb-4">
-            Hello, I'm
+            Hello, I&apos;m
           </p>
         </motion.div>
 
