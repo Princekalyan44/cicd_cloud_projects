@@ -1,36 +1,24 @@
 # Terraform Backend Configuration
 # S3 backend for remote state management with DynamoDB for state locking
+# NOTE: Backend configuration CANNOT use variables or interpolation
+# Values must be provided via:
+#   1. backend-config.hcl file
+#   2. Command line: terraform init -backend-config="key=value"
+#   3. Environment variables: TF_CLI_ARGS_init
 
 terraform {
   backend "s3" {
-    bucket         = "portfolio-terraform-state-${var.aws_account_id}"
-    key            = "portfolio/terraform.tfstate"
-    region         = var.aws_region
-    encrypt        = true
-    dynamodb_table = "portfolio-terraform-locks"
+    # These values should be provided during 'terraform init'
+    # Example: terraform init -backend-config=backend-config.hcl
     
-    # Enable versioning for state file recovery
-    versioning = true
-  }
-
-  required_version = ">= 1.5.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.23"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.11"
-    }
-    kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.14"
-    }
+    # Uncomment and set these values OR provide via backend-config.hcl
+    # bucket         = "portfolio-terraform-state-ACCOUNT_ID"
+    # key            = "portfolio/terraform.tfstate"
+    # region         = "ap-south-1"
+    # encrypt        = true
+    # dynamodb_table = "portfolio-terraform-locks"
+    
+    # Note: Backend configuration is commented to allow flexible initialization
+    # Recommended: Use backend-config.hcl (see backend-config.hcl.example)
   }
 }

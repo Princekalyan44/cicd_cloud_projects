@@ -1,0 +1,30 @@
+# Backend Configuration Example
+# Copy this file to backend-config.hcl and update with your values
+# DO NOT commit backend-config.hcl to version control!
+#
+# Usage:
+#   terraform init -backend-config=backend-config.hcl
+
+# S3 bucket for storing Terraform state
+# Must be created before running terraform init (use scripts/setup-backend.sh)
+bucket = "portfolio-terraform-state-YOUR_ACCOUNT_ID"
+
+# Path within the bucket where state file will be stored
+key = "portfolio/terraform.tfstate"
+
+# AWS region where the S3 bucket is located
+region = "ap-south-1"
+
+# Enable encryption at rest for state file
+encrypt = true
+
+# DynamoDB table for state locking
+# Prevents concurrent modifications to state
+dynamodb_table = "portfolio-terraform-locks"
+
+# Optional: Use specific AWS profile
+# profile = "default"
+
+# Optional: Additional S3 backend options
+# workspace_key_prefix = "env"  # For multiple workspaces
+# role_arn = "arn:aws:iam::ACCOUNT_ID:role/TerraformRole"  # For cross-account access
