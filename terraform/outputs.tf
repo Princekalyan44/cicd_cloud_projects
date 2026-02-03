@@ -123,6 +123,3 @@ output "route53_name_servers" {
   description = "Route53 name servers"
   value       = var.create_route53_zone ? module.route53[0].name_servers : null
 }
-
-# Data source for account ID
-data "aws_caller_identity" "current" {}
