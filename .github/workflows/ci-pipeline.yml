@@ -14,6 +14,13 @@ on:
     branches: 
       - main
 
+# Global permissions for the workflow
+permissions:
+  contents: read
+  security-events: write  # Required for CodeQL and security scanning
+  actions: read
+  pull-requests: read
+
 # Environment variables used across all jobs
 env:
   AWS_REGION: ap-south-1
@@ -28,6 +35,9 @@ jobs:
   security-scan:
     name: Security Scanning
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     
     steps:
       # Step 1: Checkout code from repository
@@ -93,9 +103,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      # Initialize CodeQL
+      # Initialize CodeQL (upgraded to v4)
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
@@ -105,16 +115,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Remove cache configuration since package-lock.json doesn't exist
       
       # Install dependencies (needed for CodeQL to analyze)
       - name: Install dependencies
         working-directory: portfolio-frontend
         run: npm install --package-lock=false
       
-      # Perform CodeQL Analysis
+      # Perform CodeQL Analysis (upgraded to v4)
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
   
@@ -126,6 +135,10 @@ jobs:
     runs-on: ubuntu-latest
     # Only run after security scanning passes
     needs: security-scan
+    permissions:
+      contents: read
+      security-events: write  # Required for Trivy SARIF upload
+      id-token: write  # Required for AWS OIDC (future)
     
     # Define output variables for other jobs to use
     outputs:
@@ -141,7 +154,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'  # LTS version
-          # Remove cache configuration since package-lock.json doesn't exist
       
       # Step 3: Install dependencies
       - name: Install dependencies
@@ -222,6 +234,7 @@ jobs:
       
       # Step 12: Build and push Docker image to ECR
       - name: Build and push Docker image
+        id: docker-build
         uses: docker/build-push-action@v5
         with:
           context: portfolio-frontend
@@ -235,6 +248,7 @@ jobs:
         if: github.event_name == 'push'
       
       # Step 13: Scan Docker image for vulnerabilities
+      # Note: Trivy scans the image from registry after it's pushed
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -244,14 +258,15 @@ jobs:
           # Only fail on HIGH and CRITICAL vulnerabilities
           severity: 'HIGH,CRITICAL'
         continue-on-error: true
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.docker-build.outcome == 'success'
       
       # Step 14: Upload scan results to GitHub Security tab
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always() && github.event_name == 'push'
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy-frontend'
+        if: github.event_name == 'push' && hashFiles('trivy-results.sarif') != ''
   
   # ============================================
   # JOB 4: Build Chatbot Service
@@ -260,6 +275,10 @@ jobs:
     name: Build Chatbot Service
     runs-on: ubuntu-latest
     needs: security-scan
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
     
     steps:
       - name: Checkout code
@@ -293,6 +312,7 @@ jobs:
       
       # Build custom chatbot image based on jasonacox/chatbot
       - name: Build and push Chatbot image
+        id: docker-build
         uses: docker/build-push-action@v5
         with:
           context: chatbot-service
@@ -308,10 +328,19 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.ECR_REGISTRY }}/portfolio-chatbot:${{ github.ref_name }}-${{ github.sha }}
-          format: 'table'
+          format: 'sarif'
+          output: 'trivy-chatbot-results.sarif'
           severity: 'HIGH,CRITICAL'
         continue-on-error: true
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.docker-build.outcome == 'success'
+      
+      # Upload chatbot scan results
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-chatbot-results.sarif'
+          category: 'trivy-chatbot'
+        if: github.event_name == 'push' && hashFiles('trivy-chatbot-results.sarif') != ''
   
   # ============================================
   # JOB 5: Update Kubernetes Manifests for ArgoCD
@@ -323,6 +352,8 @@ jobs:
     needs: [build-frontend, build-chatbot]
     # Only update manifests on main branch (production)
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write  # Required to push changes
     
     steps:
       - name: Checkout code
@@ -366,6 +397,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-frontend, build-chatbot]
     if: always()  # Run even if previous jobs fail
+    permissions:
+      contents: read
     
     steps:
       - name: Build Summary
@@ -375,8 +408,10 @@ jobs:
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**ECR Registry:** ${{ env.ECR_REGISTRY }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ github.event_name }}" = "push" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Images Built:**" >> $GITHUB_STEP_SUMMARY
-            echo "- portfolio-frontend:${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-            echo "- portfolio-chatbot:${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.ECR_REGISTRY }}/portfolio-frontend:${{ github.ref_name }}-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.ECR_REGISTRY }}/portfolio-chatbot:${{ github.ref_name }}-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           fi
