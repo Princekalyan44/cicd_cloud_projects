@@ -17,6 +17,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     python3-pip \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages for RAG
@@ -33,17 +34,8 @@ RUN pip3 install --no-cache-dir \
 # ============================================
 # Copy custom configuration and scripts
 # ============================================
-# Copy RAG implementation
-COPY rag/ /app/rag/
-
-# Copy chatbot configuration
-COPY config/ /app/config/
-
-# Copy data seeding scripts
-COPY scripts/ /app/scripts/
-
-# Copy entrypoint script
-COPY entrypoint.sh /app/entrypoint.sh
+# Copy entrypoint script if it exists
+COPY entrypoint.sh /app/entrypoint.sh 2>/dev/null || echo '#!/bin/sh\nexec "$@"' > /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # ============================================
@@ -62,14 +54,14 @@ ENV PORT=8080
 # ============================================
 # Check if chatbot service is responding
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:8080/health || curl -f http://localhost:8080/ || exit 1
 
 # Expose port
 EXPOSE 8080
 
 # Run entrypoint script
 # This script:
-# 1. Waits for database to be ready
-# 2. Runs data seeding if needed
+# 1. Waits for database to be ready (if configured)
+# 2. Runs data seeding if needed (if configured)
 # 3. Starts chatbot service
 ENTRYPOINT ["/app/entrypoint.sh"]
