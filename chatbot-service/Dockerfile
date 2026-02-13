@@ -32,10 +32,10 @@ RUN pip3 install --no-cache-dir \
     python-dotenv==1.0.0
 
 # ============================================
-# Copy custom configuration and scripts
+# Copy entrypoint script
 # ============================================
-# Copy entrypoint script if it exists
-#COPY --from=builder --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
+# Copy the entrypoint script from the build context
+COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # ============================================
