@@ -63,10 +63,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy public directory if it exists (contains static assets like images)
-# If public doesn't exist, create an empty one
-RUN mkdir -p /app/public && chown nextjs:nodejs /app/public
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public || true
+# Note: Next.js 14 App Router doesn't require public directory
+# Static assets are bundled in .next/static
+# If you have a public directory with custom assets, it will be in standalone output
 
 # Switch to non-root user
 USER nextjs
