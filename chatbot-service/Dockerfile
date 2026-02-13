@@ -35,7 +35,7 @@ RUN pip3 install --no-cache-dir \
 # Copy custom configuration and scripts
 # ============================================
 # Copy entrypoint script if it exists
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
+#COPY --from=builder --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
 RUN chmod +x /app/entrypoint.sh
 
 # ============================================
