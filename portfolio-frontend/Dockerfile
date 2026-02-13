@@ -59,12 +59,14 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy only necessary files from builder
-# Note: Next.js 14 with standalone output includes everything needed
+# Next.js standalone output includes everything needed
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy public directory if it exists (for static assets)
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
+# Copy public directory if it exists (contains static assets like images)
+# If public doesn't exist, create an empty one
+RUN mkdir -p /app/public && chown nextjs:nodejs /app/public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public || true
 
 # Switch to non-root user
 USER nextjs
