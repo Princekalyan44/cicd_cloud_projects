@@ -12,11 +12,12 @@ WORKDIR /app
 
 # Copy package files first (for better caching)
 # Docker caches layers, so if package.json doesn't change, this layer is reused
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json* ./
 
 # Install dependencies
-# --ci uses package-lock.json for reproducible builds
-RUN npm ci --only=production
+# Use npm install if package-lock.json doesn't exist
+RUN if [ -f package-lock.json ]; then npm ci --only=production; \
+    else npm install --only=production; fi
 
 # ============================================
 # Stage 2: Builder
@@ -58,12 +59,12 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy only necessary files from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Note: Next.js 14 with standalone output includes everything needed
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Change ownership to non-root user
-RUN chown -R nextjs:nodejs /app
+# Copy public directory if it exists (for static assets)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
 
 # Switch to non-root user
 USER nextjs
@@ -71,9 +72,13 @@ USER nextjs
 # Expose port 3000 (Next.js default)
 EXPOSE 3000
 
+# Set hostname to listen on all interfaces
+ENV HOSTNAME="0.0.0.0"
+ENV PORT=3000
+
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application
 CMD ["node", "server.js"]
