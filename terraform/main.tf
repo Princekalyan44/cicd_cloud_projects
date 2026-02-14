@@ -110,7 +110,7 @@ module "eks" {
         {
           key    = "nvidia.com/gpu"
           value  = "true"
-          effect = "NoSchedule"
+          effect = "NO_SCHEDULE"  # Must be uppercase for EKS API
         }
       ]
 
