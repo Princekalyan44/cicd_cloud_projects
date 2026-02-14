@@ -70,7 +70,7 @@ module "eks" {
     }
   }
 
-  # Node groups
+  # Node groups - all keys must be present in all objects for type consistency
   node_groups = {
     general = {
       name           = "${local.name_prefix}-general"
@@ -84,6 +84,8 @@ module "eks" {
       labels = {
         workload = "general"
       }
+
+      taints = null  # No taints for general workload
 
       update_config = {
         max_unavailable_percentage = 33
@@ -130,15 +132,17 @@ module "eks" {
     }
   }
 
-  # Node security group rules - all rules must have same structure
+  # Node security group rules - all rules must have identical structure
   node_security_group_additional_rules = {
     ingress_self_all = {
-      description = "Node to node all ports/protocols"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "ingress"
-      self        = true
+      description                   = "Node to node all ports/protocols"
+      protocol                      = "-1"
+      from_port                     = 0
+      to_port                       = 0
+      type                          = "ingress"
+      self                          = true
+      cidr_blocks                   = null
+      source_cluster_security_group = null
     }
     ingress_cluster_all = {
       description                   = "Cluster to node all ports/protocols"
@@ -146,15 +150,19 @@ module "eks" {
       from_port                     = 0
       to_port                       = 0
       type                          = "ingress"
+      self                          = null
+      cidr_blocks                   = null
       source_cluster_security_group = true
     }
     egress_all = {
-      description = "Node all egress"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "egress"
-      cidr_blocks = ["0.0.0.0/0"]
+      description                   = "Node all egress"
+      protocol                      = "-1"
+      from_port                     = 0
+      to_port                       = 0
+      type                          = "egress"
+      self                          = null
+      cidr_blocks                   = ["0.0.0.0/0"]
+      source_cluster_security_group = null
     }
   }
 
@@ -374,33 +382,33 @@ module "waf" {
     resource_arn = module.alb.lb_arn
   }
 
-  # WAF Rules - all rules must have action key for type consistency
+  # WAF Rules - all rules must have identical structure
   rules = [
     {
-      name     = "RateLimitRule"
-      priority = 1
-      action   = "block"
-      
-      rate_based_statement = {
+      name                         = "RateLimitRule"
+      priority                     = 1
+      action                       = "block"
+      rate_based_statement         = {
         limit              = var.waf_rate_limit
         aggregate_key_type = "IP"
       }
+      managed_rule_group_statement = null
     },
     {
-      name     = "AWSManagedRulesCommonRuleSet"
-      priority = 2
-      action   = "none"  # Managed rules handle their own actions
-      
+      name                         = "AWSManagedRulesCommonRuleSet"
+      priority                     = 2
+      action                       = "none"
+      rate_based_statement         = null
       managed_rule_group_statement = {
         vendor_name = "AWS"
         name        = "AWSManagedRulesCommonRuleSet"
       }
     },
     {
-      name     = "AWSManagedRulesKnownBadInputsRuleSet"
-      priority = 3
-      action   = "none"  # Managed rules handle their own actions
-      
+      name                         = "AWSManagedRulesKnownBadInputsRuleSet"
+      priority                     = 3
+      action                       = "none"
+      rate_based_statement         = null
       managed_rule_group_statement = {
         vendor_name = "AWS"
         name        = "AWSManagedRulesKnownBadInputsRuleSet"
