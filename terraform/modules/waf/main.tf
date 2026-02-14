@@ -3,7 +3,7 @@
 variable "name" { type = string }
 variable "scope" { type = string }
 variable "web_acl_association" { type = map(string) }
-variable "rules" { type = list(any) }
+variable "rules" { type = any }
 variable "tags" { type = map(string) }
 
 resource "aws_wafv2_web_acl" "main" {
@@ -26,7 +26,7 @@ resource "aws_wafv2_web_acl" "main" {
 
       statement {
         dynamic "rate_based_statement" {
-          for_each = try([rule.value.rate_based_statement], [])
+          for_each = rule.value.rate_based_statement != null ? [rule.value.rate_based_statement] : []
           content {
             limit              = rate_based_statement.value.limit
             aggregate_key_type = rate_based_statement.value.aggregate_key_type
@@ -34,7 +34,7 @@ resource "aws_wafv2_web_acl" "main" {
         }
 
         dynamic "managed_rule_group_statement" {
-          for_each = try([rule.value.managed_rule_group_statement], [])
+          for_each = rule.value.managed_rule_group_statement != null ? [rule.value.managed_rule_group_statement] : []
           content {
             vendor_name = managed_rule_group_statement.value.vendor_name
             name        = managed_rule_group_statement.value.name
