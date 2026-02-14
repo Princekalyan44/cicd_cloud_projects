@@ -9,9 +9,9 @@ variable "enable_irsa" { type = bool }
 variable "cluster_endpoint_public_access" { type = bool }
 variable "cluster_endpoint_private_access" { type = bool }
 variable "cluster_addons" { type = map(any) }
-variable "node_groups" { type = map(any) }
-variable "cluster_security_group_additional_rules" { type = map(any) }
-variable "node_security_group_additional_rules" { type = map(any) }
+variable "node_groups" { type = any }
+variable "cluster_security_group_additional_rules" { type = any }
+variable "node_security_group_additional_rules" { type = any }
 variable "tags" { type = map(string) }
 
 # IAM Role for EKS Cluster
@@ -168,7 +168,7 @@ resource "aws_eks_node_group" "main" {
   labels = try(each.value.labels, {})
 
   dynamic "taint" {
-    for_each = try(each.value.taints, [])
+    for_each = try(each.value.taints, []) != null ? try(each.value.taints, []) : []
     content {
       key    = taint.value.key
       value  = taint.value.value
