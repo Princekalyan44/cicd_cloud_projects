@@ -85,8 +85,6 @@ module "eks" {
         workload = "general"
       }
 
-      taints = []
-
       update_config = {
         max_unavailable_percentage = 33
       }
@@ -102,8 +100,8 @@ module "eks" {
       desired_size = var.node_group_gpu_desired_size
 
       labels = {
-        workload = "gpu"
-        "nvidia.com/gpu" = "true"
+        workload             = "gpu"
+        "nvidia.com/gpu"     = "true"
       }
 
       taints = [
@@ -114,8 +112,9 @@ module "eks" {
         }
       ]
 
-      # Install NVIDIA device plugin
-      enable_nvidia_device_plugin = true
+      update_config = {
+        max_unavailable_percentage = 33
+      }
     }
   }
 
@@ -131,7 +130,7 @@ module "eks" {
     }
   }
 
-  # Node security group rules
+  # Node security group rules - all rules must have same structure
   node_security_group_additional_rules = {
     ingress_self_all = {
       description = "Node to node all ports/protocols"
@@ -150,13 +149,12 @@ module "eks" {
       source_cluster_security_group = true
     }
     egress_all = {
-      description      = "Node all egress"
-      protocol         = "-1"
-      from_port        = 0
-      to_port          = 0
-      type             = "egress"
-      cidr_blocks      = ["0.0.0.0/0"]
-      ipv6_cidr_blocks = ["::/0"]
+      description = "Node all egress"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "egress"
+      cidr_blocks = ["0.0.0.0/0"]
     }
   }
 
@@ -376,7 +374,7 @@ module "waf" {
     resource_arn = module.alb.lb_arn
   }
 
-  # WAF Rules
+  # WAF Rules - all rules must have action key for type consistency
   rules = [
     {
       name     = "RateLimitRule"
@@ -391,6 +389,7 @@ module "waf" {
     {
       name     = "AWSManagedRulesCommonRuleSet"
       priority = 2
+      action   = "none"  # Managed rules handle their own actions
       
       managed_rule_group_statement = {
         vendor_name = "AWS"
@@ -400,6 +399,7 @@ module "waf" {
     {
       name     = "AWSManagedRulesKnownBadInputsRuleSet"
       priority = 3
+      action   = "none"  # Managed rules handle their own actions
       
       managed_rule_group_statement = {
         vendor_name = "AWS"
