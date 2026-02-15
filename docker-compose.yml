@@ -1,0 +1,130 @@
+# Docker Compose Configuration for Portfolio Application
+# Orchestrates frontend and chatbot services
+
+version: '3.8'
+
+services:
+  # ============================================
+  # Frontend Service - Next.js Portfolio
+  # ============================================
+  portfolio-frontend:
+    image: kalyanace44/portfolio-frontend:v1
+    container_name: portfolio-frontend
+    
+    # Build configuration (if building from source)
+    build:
+      context: ./portfolio-frontend
+      dockerfile: Dockerfile
+    
+    # Port mapping
+    ports:
+      - "3000:3000"
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      # Chatbot API URL (internal service name)
+      - CHATBOT_API_URL=http://chatbot-service:8080
+    
+    # Depends on chatbot service
+    depends_on:
+      chatbot-service:
+        condition: service_healthy
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Connect to custom network
+    networks:
+      - portfolio-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================
+  # Chatbot Service - AI Backend
+  # ============================================
+  chatbot-service:
+    image: kalyanace44/portfolio-chatbot:v1
+    container_name: portfolio-chatbot
+    
+    # Build configuration (if building from source)
+    build:
+      context: ./chatbot-service
+      dockerfile: Dockerfile
+    
+    # Port mapping (internal only, not exposed to host)
+    expose:
+      - "8080"
+    
+    # Optional: Expose to host for testing
+    # ports:
+    #   - "8080:8080"
+    
+    # Environment variables
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8080
+      - LOG_LEVEL=info
+      # Add OpenAI API key or other AI service credentials
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Connect to custom network
+    networks:
+      - portfolio-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Volume for knowledge base data (optional)
+    volumes:
+      - ./chatbot-service/data:/app/data:ro
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  portfolio-network:
+    driver: bridge
+    name: portfolio-network
+
+# ============================================
+# Volumes (if needed for persistence)
+# ============================================
+volumes:
+  chatbot-data:
+    driver: local
