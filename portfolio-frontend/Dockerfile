@@ -12,15 +12,17 @@ WORKDIR /app
 
 # Copy package files first (for better caching)
 # Docker caches layers, so if package.json doesn't change, this layer is reused
-COPY package.json package-lock.json* ./
+# Also copy .npmrc for peer dependency configuration
+COPY package.json package-lock.json* .npmrc* ./
 
 # Install ALL dependencies (including devDependencies)
 # This is needed because Next.js build requires:
 # - tailwindcss, postcss, autoprefixer (CSS processing)
 # - typescript (type checking during build)
 # - eslint (code quality checks)
-RUN if [ -f package-lock.json ]; then npm ci; \
-    else npm install; fi
+# Use --legacy-peer-deps to handle ESLint version conflicts
+RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; \
+    else npm install --legacy-peer-deps; fi
 
 # ============================================
 # Stage 2: Builder
