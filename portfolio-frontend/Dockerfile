@@ -69,12 +69,12 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy only necessary files from builder
 # Next.js standalone output includes everything needed to run
-# This stage does NOT include devDependencies - only built output
+# This includes public assets bundled in the standalone output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy public directory if it exists (for static assets like images, fonts)
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public 2>/dev/null || true
+# Note: Next.js 14 standalone output automatically includes public directory
+# No need to copy it separately
 
 # Switch to non-root user
 USER nextjs
