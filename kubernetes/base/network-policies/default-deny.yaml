@@ -1,0 +1,30 @@
+# Default Deny Network Policies
+# Security best practice: Deny all traffic by default
+# Then explicitly allow only required communication
+
+---
+# Deny all ingress traffic in portfolio-prod namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: portfolio-prod
+spec:
+  # Apply to all pods in the namespace
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  # Empty ingress rules = deny all
+
+---
+# Deny all egress traffic in portfolio-prod namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: portfolio-prod
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  # Empty egress rules = deny all

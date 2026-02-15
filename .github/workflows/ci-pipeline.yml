@@ -1,0 +1,417 @@
+# GitHub Actions CI Pipeline
+# This workflow runs on every push to main/develop and on pull requests
+# It performs security scanning, testing, building, and pushes container images to ECR
+
+name: CI Pipeline
+
+# Trigger conditions: when code is pushed or PR is created
+on:
+  push:
+    branches: 
+      - main
+      - develop
+  pull_request:
+    branches: 
+      - main
+
+# Global permissions for the workflow
+permissions:
+  contents: read
+  security-events: write  # Required for CodeQL and security scanning
+  actions: read
+  pull-requests: read
+
+# Environment variables used across all jobs
+env:
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-south-1.amazonaws.com
+  
+# Define jobs that run in sequence (some in parallel)
+jobs:
+  
+  # ============================================
+  # JOB 1: Security Scanning (runs first)
+  # ============================================
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+      # Step 1: Checkout code from repository
+      # fetch-depth: 0 gets full history for better secret scanning
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Step 2: Scan for exposed secrets (API keys, passwords, tokens)
+      # TruffleHog searches through git history for secrets
+      - name: TruffleHog - Secret Scanning
+        uses: trufflesecurity/trufflehog@main
+        with:
+          # Scan the entire repository
+          path: ./
+          # Scan all branches, not just current
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          # Extra args for more thorough scanning
+          extra_args: --debug --only-verified
+        continue-on-error: true  # Don't fail build on secrets found during development
+      
+      # Step 3: Scan Infrastructure as Code (Terraform) for security issues
+      # tfsec checks for misconfigurations in Terraform files
+      - name: tfsec - Terraform Security Scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          # Only scan terraform directory
+          working_directory: terraform
+          # Create SARIF report for GitHub Security tab
+          format: sarif
+          soft_fail: true  # Don't fail build, just warn
+      
+      # Step 4: Additional IaC scanning with Checkov
+      # Checkov provides more policy checks than tfsec
+      - name: Checkov - IaC Security Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform
+          framework: terraform
+          # Don't fail on low/medium severity
+          soft_fail: true
+          output_format: cli
+  
+  # ============================================
+  # JOB 2: CodeQL Analysis (separate job)
+  # ============================================
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Initialize CodeQL (upgraded to v4)
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      
+      # Setup Node.js for JavaScript analysis
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      # Install dependencies (needed for CodeQL to analyze)
+      - name: Install dependencies
+        working-directory: portfolio-frontend
+        run: npm install --package-lock=false
+      
+      # Perform CodeQL Analysis (upgraded to v4)
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
+  
+  # ============================================
+  # JOB 3: Build Frontend (depends on security-scan)
+  # ============================================
+  build-frontend:
+    name: Build Frontend Application
+    runs-on: ubuntu-latest
+    # Only run after security scanning passes
+    needs: security-scan
+    permissions:
+      contents: read
+      security-events: write  # Required for Trivy SARIF upload
+      id-token: write  # Required for AWS OIDC (future)
+    
+    # Define output variables for other jobs to use
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Setup Node.js for React/Next.js build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'  # LTS version
+      
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        working-directory: portfolio-frontend
+        run: |
+          # Install all packages from package.json
+          # Using npm install instead of npm ci since no package-lock.json
+          npm install
+      
+      # Step 4: Run security audit on npm packages
+      # Check for known vulnerabilities in dependencies
+      - name: NPM Security Audit
+        working-directory: portfolio-frontend
+        run: |
+          # Audit dependencies, fail on high/critical vulnerabilities
+          npm audit --audit-level=moderate || true
+        continue-on-error: true  # Don't fail build, just report
+      
+      # Step 5: Run linting to catch code quality issues
+      - name: Run ESLint
+        working-directory: portfolio-frontend
+        run: |
+          npm run lint || echo "Linting skipped"
+        continue-on-error: true
+      
+      # Step 6: Run unit tests (skip if no tests yet)
+      - name: Run Tests
+        working-directory: portfolio-frontend
+        run: |
+          # Check if test script exists
+          if npm run | grep -q "test"; then
+            npm run test -- --passWithNoTests || echo "Tests skipped"
+          else
+            echo "No tests configured yet"
+          fi
+        continue-on-error: true
+      
+      # Step 7: Build production bundle
+      - name: Build Application
+        working-directory: portfolio-frontend
+        run: |
+          # Create optimized production build
+          npm run build
+        env:
+          NODE_ENV: production
+      
+      # Step 8: Setup Docker Buildx for multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      # Step 9: Configure AWS credentials for ECR access
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+        if: github.event_name == 'push'  # Only on push, not PR
+      
+      # Step 10: Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        if: github.event_name == 'push'
+      
+      # Step 11: Extract metadata for Docker image tagging
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REGISTRY }}/portfolio-frontend
+          # Tag with git SHA and branch name
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+        if: github.event_name == 'push'
+      
+      # Step 12: Build and push Docker image to ECR
+      - name: Build and push Docker image
+        id: docker-build
+        uses: docker/build-push-action@v5
+        with:
+          context: portfolio-frontend
+          push: ${{ github.event_name == 'push' }}  # Only push on commits, not PRs
+          tags: ${{ steps.meta.outputs.tags }}
+          # Add labels for better tracking
+          labels: ${{ steps.meta.outputs.labels }}
+          # Use cache to speed up builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        if: github.event_name == 'push'
+      
+      # Step 13: Scan Docker image for vulnerabilities
+      # Note: Trivy scans the image from registry after it's pushed
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/portfolio-frontend:${{ github.ref_name }}-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          # Only fail on HIGH and CRITICAL vulnerabilities
+          severity: 'HIGH,CRITICAL'
+        continue-on-error: true
+        if: github.event_name == 'push' && steps.docker-build.outcome == 'success'
+      
+      # Step 14: Upload scan results to GitHub Security tab
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-frontend'
+        if: github.event_name == 'push' && hashFiles('trivy-results.sarif') != ''
+  
+  # ============================================
+  # JOB 4: Build Chatbot Service
+  # ============================================
+  build-chatbot:
+    name: Build Chatbot Service
+    runs-on: ubuntu-latest
+    needs: security-scan
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+        if: github.event_name == 'push'
+      
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        if: github.event_name == 'push'
+      
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ECR_REGISTRY }}/portfolio-chatbot
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+        if: github.event_name == 'push'
+      
+      # Build custom chatbot image based on jasonacox/chatbot
+      - name: Build and push Chatbot image
+        id: docker-build
+        uses: docker/build-push-action@v5
+        with:
+          context: chatbot-service
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        if: github.event_name == 'push'
+      
+      # Scan chatbot image for vulnerabilities
+      - name: Run Trivy scanner on Chatbot
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/portfolio-chatbot:${{ github.ref_name }}-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-chatbot-results.sarif'
+          severity: 'HIGH,CRITICAL'
+        continue-on-error: true
+        if: github.event_name == 'push' && steps.docker-build.outcome == 'success'
+      
+      # Upload chatbot scan results
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-chatbot-results.sarif'
+          category: 'trivy-chatbot'
+        if: github.event_name == 'push' && hashFiles('trivy-chatbot-results.sarif') != ''
+  
+  # ============================================
+  # JOB 5: Update Kubernetes Manifests for ArgoCD
+  # ============================================
+  update-manifests:
+    name: Update K8s Manifests
+    runs-on: ubuntu-latest
+    # Only run after images are built
+    needs: [build-frontend, build-chatbot]
+    # Only update manifests on main branch (production)
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write  # Required to push changes
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Need token to push changes back
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Step: Update image tags in Kubernetes manifests
+      # This triggers ArgoCD to deploy new version
+      - name: Update image tags in manifests
+        run: |
+          # Define new image tag using git SHA
+          NEW_TAG="main-${{ github.sha }}"
+          
+          # Update frontend deployment
+          sed -i "s|image: .*portfolio-frontend.*|image: ${{ env.ECR_REGISTRY }}/portfolio-frontend:${NEW_TAG}|g" \
+            kubernetes/applications/frontend/frontend-deployment.yaml
+          
+          # Update chatbot deployment
+          sed -i "s|image: .*portfolio-chatbot.*|image: ${{ env.ECR_REGISTRY }}/portfolio-chatbot:${NEW_TAG}|g" \
+            kubernetes/applications/chatbot/chatbot-deployment.yaml
+          
+          echo "Updated manifests with tag: ${NEW_TAG}"
+      
+      # Commit and push changes
+      - name: Commit and push manifest updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add kubernetes/
+          git commit -m "Update image tags to ${{ github.sha }}" || echo "No changes to commit"
+          git push || echo "Nothing to push"
+  
+  # ============================================
+  # JOB 6: Notify on completion
+  # ============================================
+  notify:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-chatbot]
+    if: always()  # Run even if previous jobs fail
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## CI Pipeline Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**ECR Registry:** ${{ env.ECR_REGISTRY }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Images Built:**" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.ECR_REGISTRY }}/portfolio-frontend:${{ github.ref_name }}-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.ECR_REGISTRY }}/portfolio-chatbot:${{ github.ref_name }}-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,91 @@
+# Limit Ranges
+# Set default resource requests/limits for pods
+# Ensures all pods have resource constraints
+
+---
+# Development Environment Limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: dev-limits
+  namespace: portfolio-dev
+spec:
+  limits:
+    # Container limits
+    - type: Container
+      default:
+        # Default limits (if not specified)
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        # Default requests (if not specified)
+        cpu: 100m
+        memory: 128Mi
+      max:
+        # Maximum allowed
+        cpu: "2"
+        memory: 2Gi
+      min:
+        # Minimum required
+        cpu: 50m
+        memory: 64Mi
+    
+    # Pod limits (sum of all containers)
+    - type: Pod
+      max:
+        cpu: "4"
+        memory: 4Gi
+
+---
+# Staging Environment Limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-limits
+  namespace: portfolio-staging
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "1"
+        memory: 1Gi
+      defaultRequest:
+        cpu: 250m
+        memory: 256Mi
+      max:
+        cpu: "4"
+        memory: 4Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: 8Gi
+
+---
+# Production Environment Limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: prod-limits
+  namespace: portfolio-prod
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "1"
+        memory: 1Gi
+      defaultRequest:
+        cpu: 500m
+        memory: 512Mi
+      max:
+        cpu: "8"
+        memory: 8Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+    - type: Pod
+      max:
+        cpu: "16"
+        memory: 16Gi

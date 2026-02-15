@@ -1,0 +1,79 @@
+# Resource Quotas
+# Limit resource consumption per namespace
+# Prevents resource exhaustion and ensures fair sharing
+
+---
+# Development Environment Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: portfolio-dev
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "4"           # 4 CPU cores
+    requests.memory: 8Gi        # 8 GB RAM
+    limits.cpu: "8"             # Max 8 CPU cores
+    limits.memory: 16Gi         # Max 16 GB RAM
+    
+    # Object counts
+    pods: "20"                  # Max 20 pods
+    services: "10"              # Max 10 services
+    persistentvolumeclaims: "5" # Max 5 PVCs
+    secrets: "20"               # Max 20 secrets
+    configmaps: "20"            # Max 20 configmaps
+
+---
+# Staging Environment Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-quota
+  namespace: portfolio-staging
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    pods: "30"
+    services: "15"
+    persistentvolumeclaims: "10"
+    secrets: "30"
+    configmaps: "30"
+
+---
+# Production Environment Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: prod-quota
+  namespace: portfolio-prod
+spec:
+  hard:
+    requests.cpu: "16"
+    requests.memory: 32Gi
+    limits.cpu: "32"
+    limits.memory: 64Gi
+    pods: "50"
+    services: "20"
+    persistentvolumeclaims: "10"
+    secrets: "40"
+    configmaps: "40"
+
+---
+# Monitoring Namespace Quota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: monitoring-quota
+  namespace: monitoring
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "20"
+    persistentvolumeclaims: "5"

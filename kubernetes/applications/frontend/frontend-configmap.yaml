@@ -1,0 +1,28 @@
+# Frontend Application ConfigMap
+# Configuration for Next.js portfolio app
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: portfolio-prod
+  labels:
+    app: frontend
+data:
+  # Next.js configuration
+  NODE_ENV: "production"
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+  
+  # API endpoints
+  NEXT_PUBLIC_CHATBOT_API_URL: "http://chatbot.portfolio-prod.svc.cluster.local:8080"
+  
+  # Feature flags
+  NEXT_PUBLIC_CHATBOT_ENABLED: "true"
+  NEXT_PUBLIC_ANALYTICS_ENABLED: "false"  # Enable when GA is configured
+  
+  # Performance settings
+  NEXT_TELEMETRY_DISABLED: "1"  # Disable Next.js telemetry
+  
+  # Logging
+  LOG_LEVEL: "info"

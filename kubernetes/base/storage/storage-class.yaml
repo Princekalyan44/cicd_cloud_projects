@@ -1,0 +1,54 @@
+# Storage Classes
+# Define storage types for different use cases
+# AWS EBS volumes with appropriate configurations
+
+---
+# General Purpose SSD (gp3) - Default for most workloads
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-encrypted
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3  # General Purpose SSD v3
+  encrypted: "true"  # Encryption at rest
+  fsType: ext4
+  # gp3 performance (can be adjusted)
+  iops: "3000"  # 3000 IOPS (baseline)
+  throughput: "125"  # 125 MB/s
+volumeBindingMode: WaitForFirstConsumer  # Provision in same AZ as pod
+allowVolumeExpansion: true  # Allow resizing
+reclaimPolicy: Delete  # Delete EBS volume when PVC is deleted
+
+---
+# High Performance SSD (io2) - For databases and high I/O workloads
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: io2-encrypted
+provisioner: ebs.csi.aws.com
+parameters:
+  type: io2
+  encrypted: "true"
+  fsType: ext4
+  iops: "10000"  # High IOPS for database workloads
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain  # Keep volume even after PVC deletion (safety)
+
+---
+# Throughput Optimized HDD (st1) - For large sequential workloads
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: st1-encrypted
+provisioner: ebs.csi.aws.com
+parameters:
+  type: st1  # Throughput optimized (cheaper for logs, backups)
+  encrypted: "true"
+  fsType: ext4
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete

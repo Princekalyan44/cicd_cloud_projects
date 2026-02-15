@@ -1,0 +1,23 @@
+# Frontend ConfigMap
+# Non-sensitive configuration for frontend application
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-frontend
+data:
+  # Next.js configuration
+  NEXT_TELEMETRY_DISABLED: "1"
+  
+  # Feature flags
+  FEATURE_CHATBOT: "true"
+  FEATURE_ANALYTICS: "false"
+  
+  # API endpoints (internal)
+  CHATBOT_SERVICE_URL: "http://portfolio-chatbot:8080"
+  
+  # Logging
+  LOG_LEVEL: "info"

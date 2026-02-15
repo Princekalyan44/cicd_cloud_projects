@@ -1,0 +1,102 @@
+# Docker Compose Configuration - Using Local PostgreSQL
+# Use this when you want to connect to PostgreSQL running on host machine (brew service)
+
+services:
+  # ============================================
+  # Frontend Service - Next.js Portfolio
+  # ============================================
+  portfolio-frontend:
+    image: kalyanace44/portfolio-frontend:v1
+    container_name: portfolio-frontend
+    
+    build:
+      context: ./portfolio-frontend
+      dockerfile: Dockerfile
+    
+    ports:
+      - "3000:3000"
+    
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - CHATBOT_API_URL=http://chatbot-service:8080
+    
+    depends_on:
+      - chatbot-service
+    
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  # ============================================
+  # Chatbot Service - AI Backend
+  # ============================================
+  chatbot-service:
+    image: kalyanace44/portfolio-chatbot:v1
+    container_name: portfolio-chatbot
+    
+    build:
+      context: ./chatbot-service
+      dockerfile: Dockerfile
+    
+    expose:
+      - "8080"
+    
+    # Optional: Expose for testing
+    # ports:
+    #   - "8080:8080"
+    
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8080
+      - LOG_LEVEL=info
+      # Connect to host machine PostgreSQL
+      # Use host.docker.internal to reach host machine
+      - DATABASE_URL=postgresql://portfolio_user:portfolio_pass@host.docker.internal:5432/portfolio_db
+      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=portfolio_user
+      - POSTGRES_PASSWORD=portfolio_pass
+      - POSTGRES_DB=portfolio_db
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+    
+    # Add host.docker.internal alias (for Linux)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    
+    volumes:
+      - ./chatbot-service/data:/app/data:ro
+
+networks:
+  portfolio-network:
+    driver: bridge
+    name: portfolio-network

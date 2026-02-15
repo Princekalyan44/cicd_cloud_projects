@@ -1,0 +1,50 @@
+# PostgreSQL ConfigMap
+# Initialization scripts and configuration
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: portfolio-prod
+  labels:
+    app: postgres
+data:
+  # Script to initialize pgvector extension
+  01-init-extensions.sql: |
+    -- Enable pgvector extension for vector similarity search
+    CREATE EXTENSION IF NOT EXISTS vector;
+    
+    -- Verify extension is installed
+    SELECT * FROM pg_extension WHERE extname = 'vector';
+  
+  # Script to create tables for chatbot
+  02-create-tables.sql: |
+    -- Create conversations table
+    CREATE TABLE IF NOT EXISTS conversations (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(255) NOT NULL,
+      user_message TEXT NOT NULL,
+      bot_response TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_session_id (session_id)
+    );
+    
+    -- Create knowledge base table with vector embeddings
+    CREATE TABLE IF NOT EXISTS knowledge_base (
+      id SERIAL PRIMARY KEY,
+      content TEXT NOT NULL,
+      embedding vector(384),  -- 384 dimensions for sentence-transformers
+      source VARCHAR(255),
+      category VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    -- Create index for vector similarity search
+    CREATE INDEX IF NOT EXISTS knowledge_embedding_idx 
+      ON knowledge_base 
+      USING ivfflat (embedding vector_cosine_ops)
+      WITH (lists = 100);
+    
+    -- Grant permissions (adjust as needed)
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;

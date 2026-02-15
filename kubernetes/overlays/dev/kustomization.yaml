@@ -1,0 +1,46 @@
+# Kustomize Configuration for Development Environment
+# Applies dev-specific customizations to base manifests
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace for all resources
+namespace: portfolio-dev
+
+# Common labels applied to all resources
+commonLabels:
+  environment: dev
+  managed-by: kustomize
+
+# Base resources to customize
+resources:
+  # Foundation
+  - ../../base/namespaces/namespaces.yaml
+  - ../../base/storage/storage-class.yaml
+  
+  # Applications
+  - ../../applications/postgres/
+  - ../../applications/frontend/
+  - ../../applications/chatbot/
+
+# Patches for dev environment
+patchesStrategicMerge:
+  - replica-count.yaml
+  - resource-limits.yaml
+
+# ConfigMap generator for dev-specific config
+configMapGenerator:
+  - name: frontend-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=debug
+      - FEATURE_ANALYTICS=false
+
+# Image tag overrides (updated by CI/CD)
+images:
+  - name: portfolio-frontend
+    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-frontend
+    newTag: dev-latest
+  - name: portfolio-chatbot
+    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-chatbot
+    newTag: dev-latest

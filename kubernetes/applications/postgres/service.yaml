@@ -1,0 +1,34 @@
+# PostgreSQL Service
+# ClusterIP service for internal database access
+# Provides stable DNS name: postgres.portfolio-prod.svc.cluster.local
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: portfolio-prod
+  labels:
+    app: postgres
+    component: database
+  annotations:
+    description: "PostgreSQL database service"
+spec:
+  type: ClusterIP  # Internal access only
+  
+  # Session affinity for consistent connections
+  sessionAffinity: ClientIP
+  
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+    
+    # Metrics port for Prometheus
+    - name: metrics
+      port: 9187
+      targetPort: 9187
+      protocol: TCP
+  
+  selector:
+    app: postgres

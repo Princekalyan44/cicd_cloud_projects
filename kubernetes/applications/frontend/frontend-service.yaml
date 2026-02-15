@@ -1,0 +1,23 @@
+# Frontend Service
+# Exposes frontend pods
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: portfolio-prod
+  labels:
+    app: frontend
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/api/health"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app: frontend

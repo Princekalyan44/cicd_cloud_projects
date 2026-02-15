@@ -1,0 +1,27 @@
+# Frontend Service
+# ClusterIP service for internal routing via Istio
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-frontend
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-frontend
+    component: application
+  annotations:
+    description: "Portfolio frontend service"
+spec:
+  type: ClusterIP
+  
+  # Session affinity not needed (stateless)
+  sessionAffinity: None
+  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      protocol: TCP
+  
+  selector:
+    app: portfolio-frontend

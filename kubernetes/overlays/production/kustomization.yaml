@@ -1,0 +1,49 @@
+# Kustomize Configuration for Production Environment
+# Full production configuration with all features enabled
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: portfolio-prod
+
+commonLabels:
+  environment: production
+  managed-by: kustomize
+
+commonAnnotations:
+  deployment-timestamp: "2026-02-03T00:00:00Z"
+
+resources:
+  # Foundation
+  - ../../base/namespaces/namespaces.yaml
+  - ../../base/namespaces/resource-quotas.yaml
+  - ../../base/namespaces/limit-ranges.yaml
+  - ../../base/rbac/
+  - ../../base/network-policies/
+  - ../../base/storage/
+  
+  # Applications
+  - ../../applications/postgres/
+  - ../../applications/frontend/
+  - ../../applications/chatbot/
+  - ../../applications/ingress/
+
+# Production-specific config
+configMapGenerator:
+  - name: frontend-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=warn
+      - FEATURE_ANALYTICS=true
+      - FEATURE_CHATBOT=true
+
+# Production image tags (updated by CI/CD)
+images:
+  - name: portfolio-frontend
+    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-frontend
+    newTag: v1.0.0  # Semantic versioning in prod
+  - name: portfolio-chatbot
+    newName: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/portfolio-chatbot
+    newTag: v1.0.0
+
+# Replicas are managed by HPA in production

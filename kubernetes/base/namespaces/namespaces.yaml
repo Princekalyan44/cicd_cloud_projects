@@ -1,0 +1,114 @@
+# Namespace Definitions
+# Separate namespaces for different environments and platform services
+# Provides isolation and resource management boundaries
+
+---
+# Development Environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-dev
+  labels:
+    environment: development
+    project: portfolio
+    istio-injection: enabled  # Enable Istio sidecar injection
+  annotations:
+    description: "Development environment for portfolio application"
+
+---
+# Staging Environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-staging
+  labels:
+    environment: staging
+    project: portfolio
+    istio-injection: enabled
+  annotations:
+    description: "Staging environment for portfolio application"
+
+---
+# Production Environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-prod
+  labels:
+    environment: production
+    project: portfolio
+    istio-injection: enabled
+  annotations:
+    description: "Production environment for portfolio application"
+
+---
+# ArgoCD Namespace (GitOps)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    component: gitops
+    project: portfolio
+  annotations:
+    description: "ArgoCD for GitOps continuous deployment"
+
+---
+# Istio System Namespace (Service Mesh)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    component: service-mesh
+    project: portfolio
+  annotations:
+    description: "Istio service mesh control plane"
+
+---
+# Vault Namespace (Secrets Management)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    component: secrets-management
+    project: portfolio
+  annotations:
+    description: "HashiCorp Vault for secrets management"
+
+---
+# Monitoring Namespace (Observability)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    component: observability
+    project: portfolio
+  annotations:
+    description: "Prometheus, Grafana, and monitoring stack"
+
+---
+# Kyverno Namespace (Policy Engine)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kyverno
+  labels:
+    component: policy-engine
+    project: portfolio
+  annotations:
+    description: "Kyverno policy engine for Kubernetes"
+
+---
+# Cert-Manager Namespace (Certificate Management)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    component: certificate-management
+    project: portfolio
+  annotations:
+    description: "Cert-Manager for SSL/TLS certificate automation"

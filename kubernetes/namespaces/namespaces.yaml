@@ -1,0 +1,93 @@
+# Namespace Definitions
+# Organize resources by environment and function
+# Each namespace has resource quotas and network policies
+
+---
+# Development environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-dev
+  labels:
+    name: portfolio-dev
+    environment: development
+    istio-injection: enabled  # Enable Istio sidecar injection
+    monitoring: "true"        # Enable Prometheus monitoring
+
+---
+# Staging environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-staging
+  labels:
+    name: portfolio-staging
+    environment: staging
+    istio-injection: enabled
+    monitoring: "true"
+
+---
+# Production environment
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-prod
+  labels:
+    name: portfolio-prod
+    environment: production
+    istio-injection: enabled
+    monitoring: "true"
+    # Additional security for production
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# ArgoCD namespace for GitOps
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+    monitoring: "true"
+
+---
+# Vault namespace for secrets management
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    name: vault
+    monitoring: "true"
+
+---
+# Istio system namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    name: istio-system
+    monitoring: "true"
+
+---
+# Monitoring namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    monitoring: "true"
+
+---
+# Kyverno namespace for policy management
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kyverno
+  labels:
+    name: kyverno
+    monitoring: "true"

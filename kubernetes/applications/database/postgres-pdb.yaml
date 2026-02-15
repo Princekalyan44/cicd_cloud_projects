@@ -1,0 +1,16 @@
+# PodDisruptionBudget for PostgreSQL
+# Ensures availability during voluntary disruptions
+# (node drains, updates, etc.)
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-pdb
+  namespace: portfolio-prod
+  labels:
+    app: postgres
+spec:
+  minAvailable: 1  # At least 1 pod must be available
+  selector:
+    matchLabels:
+      app: postgres

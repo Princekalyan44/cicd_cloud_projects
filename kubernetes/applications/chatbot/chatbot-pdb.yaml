@@ -1,0 +1,15 @@
+# PodDisruptionBudget for Chatbot
+# Ensures availability during disruptions
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chatbot-pdb
+  namespace: portfolio-prod
+  labels:
+    app: chatbot
+spec:
+  minAvailable: 1  # At least 1 pod must be available
+  selector:
+    matchLabels:
+      app: chatbot

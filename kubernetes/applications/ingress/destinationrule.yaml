@@ -1,0 +1,80 @@
+# Istio DestinationRule
+# Traffic policies for services (load balancing, circuit breaking, etc.)
+
+---
+# Frontend Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: portfolio-frontend-rule
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-frontend
+spec:
+  host: portfolio-frontend.portfolio-prod.svc.cluster.local
+  
+  # Traffic policy
+  trafficPolicy:
+    # Load balancing
+    loadBalancer:
+      simple: ROUND_ROBIN  # Or: LEAST_REQUEST
+    
+    # Connection pool settings
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 1024
+        http2MaxRequests: 1024
+        maxRequestsPerConnection: 100
+      tcp:
+        maxConnections: 1024
+    
+    # Circuit breaker
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  
+  # Subsets for canary deployments (optional)
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+    - name: v2
+      labels:
+        version: v2
+
+---
+# Chatbot Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: portfolio-chatbot-rule
+  namespace: portfolio-prod
+  labels:
+    app: portfolio-chatbot
+spec:
+  host: portfolio-chatbot.portfolio-prod.svc.cluster.local
+  
+  trafficPolicy:
+    loadBalancer:
+      # Consistent hash for session affinity
+      consistentHash:
+        httpCookie:
+          name: chatbot-session
+          ttl: 3600s  # 1 hour
+    
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 512
+        http2MaxRequests: 512
+        maxRequestsPerConnection: 50
+      tcp:
+        maxConnections: 512
+    
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 30

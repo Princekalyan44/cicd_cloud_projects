@@ -1,0 +1,150 @@
+# Allow Network Policies
+# Explicit rules for required communication
+# Following zero-trust security model
+
+---
+# Allow Frontend to receive traffic from Istio Ingress Gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-ingress
+  namespace: portfolio-prod
+spec:
+  podSelector:
+    matchLabels:
+      app: portfolio-frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from Istio ingress gateway
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+        - podSelector:
+            matchLabels:
+              app: istio-ingressgateway
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# Allow Frontend to call Chatbot service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-chatbot
+  namespace: portfolio-prod
+spec:
+  podSelector:
+    matchLabels:
+      app: portfolio-chatbot
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from frontend pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: portfolio-frontend
+      ports:
+        - protocol: TCP
+          port: 8080
+
+---
+# Allow Chatbot to access PostgreSQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-chatbot-to-postgres
+  namespace: portfolio-prod
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from chatbot pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: portfolio-chatbot
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# Allow DNS queries (required for all pods)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: portfolio-prod
+spec:
+  podSelector: {}  # All pods
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS queries to kube-dns
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+---
+# Allow external HTTPS egress (for API calls, etc.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-https-egress
+  namespace: portfolio-prod
+spec:
+  podSelector:
+    matchLabels:
+      external-access: "true"  # Label pods that need external access
+  policyTypes:
+    - Egress
+  egress:
+    # Allow HTTPS to anywhere
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow HTTP (less secure, use sparingly)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
+
+---
+# Allow Prometheus to scrape metrics from all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scraping
+  namespace: portfolio-prod
+spec:
+  podSelector: {}  # All pods
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from Prometheus in monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090  # Metrics port (adjust per application)

@@ -1,0 +1,117 @@
+# Limit Ranges
+# Set default resource limits and requests for pods
+# Ensures every container has resource constraints
+
+---
+# Development environment limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: dev-limit-range
+  namespace: portfolio-dev
+spec:
+  limits:
+    # Pod level limits
+    - type: Pod
+      max:
+        cpu: "4"           # Max CPU per pod
+        memory: 8Gi        # Max memory per pod
+      min:
+        cpu: 50m           # Min CPU per pod
+        memory: 32Mi       # Min memory per pod
+    
+    # Container level limits
+    - type: Container
+      default:             # Default limits if not specified
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:      # Default requests if not specified
+        cpu: 100m
+        memory: 128Mi
+      max:                 # Maximum allowed
+        cpu: "2"
+        memory: 4Gi
+      min:                 # Minimum required
+        cpu: 50m
+        memory: 32Mi
+    
+    # Persistent Volume Claim limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: 20Gi
+      min:
+        storage: 1Gi
+
+---
+# Staging environment limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-limit-range
+  namespace: portfolio-staging
+spec:
+  limits:
+    - type: Pod
+      max:
+        cpu: "6"
+        memory: 12Gi
+      min:
+        cpu: 50m
+        memory: 32Mi
+    
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      max:
+        cpu: "3"
+        memory: 6Gi
+      min:
+        cpu: 50m
+        memory: 32Mi
+    
+    - type: PersistentVolumeClaim
+      max:
+        storage: 50Gi
+      min:
+        storage: 1Gi
+
+---
+# Production environment limits (higher thresholds)
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: prod-limit-range
+  namespace: portfolio-prod
+spec:
+  limits:
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: 16Gi
+      min:
+        cpu: 100m          # Higher minimum for production
+        memory: 64Mi
+    
+    - type: Container
+      default:
+        cpu: "1"
+        memory: 1Gi
+      defaultRequest:
+        cpu: 250m
+        memory: 256Mi
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 100m
+        memory: 64Mi
+    
+    - type: PersistentVolumeClaim
+      max:
+        storage: 100Gi
+      min:
+        storage: 5Gi

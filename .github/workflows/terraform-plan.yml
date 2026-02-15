@@ -1,0 +1,109 @@
+# Terraform Plan Workflow
+# This workflow runs on pull requests to show infrastructure changes
+# It helps review what will change before merging to main
+
+name: Terraform Plan
+
+# Trigger: Only on PRs that modify Terraform files
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-plan.yml'
+
+# Set permissions for GitHub token
+permissions:
+  contents: read
+  pull-requests: write  # Allow commenting on PRs
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    
+    # Set working directory for all steps
+    defaults:
+      run:
+        working-directory: terraform
+    
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Step 2: Setup Terraform CLI
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      # Step 3: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+      
+      # Step 4: Initialize Terraform
+      # Downloads providers and sets up backend
+      - name: Terraform Init
+        run: terraform init
+      
+      # Step 5: Validate Terraform syntax
+      - name: Terraform Validate
+        run: terraform validate
+      
+      # Step 6: Format check (ensures consistent formatting)
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        continue-on-error: true  # Don't fail, just warn
+      
+      # Step 7: Generate execution plan
+      # Shows what will be created/modified/destroyed
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -no-color -out=tfplan
+        continue-on-error: true
+      
+      # Step 8: Post plan as PR comment
+      # Makes it easy for reviewers to see changes
+      - name: Comment PR with Plan
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('terraform/tfplan.txt', 'utf8');
+            
+            const output = `### Terraform Plan 📝
+            
+            #### Terraform Initialization ⚙️ \`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖 \`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${plan}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+      
+      # Step 9: Fail if plan failed
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
