@@ -55,24 +55,27 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Connect</h4>
             <div className="flex gap-4">
               <a
-                href="https://github.com/Princekalyan44"
+                href="https://github.com/kalyanace44"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                aria-label="GitHub Profile"
               >
                 <Github size={20} />
               </a>
               <a
-                href="https://linkedin.com/in/kalyan-devops"
+                href="https://www.linkedin.com/in/ekalyan"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                aria-label="LinkedIn Profile"
               >
                 <Linkedin size={20} />
               </a>
               <a
-                href="mailto:kalyan@example.com"
+                href="mailto:kalyanace44@gmail.com"
                 className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                aria-label="Email Contact"
               >
                 <Mail size={20} />
               </a>
