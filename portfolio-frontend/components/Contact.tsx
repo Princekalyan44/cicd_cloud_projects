@@ -7,7 +7,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Mail, Phone, MapPin, Send } from 'lucide-react'
+import { Mail, Phone, MapPin, Send, Linkedin, Github } from 'lucide-react'
 import { useState } from 'react'
 
 const Contact = () => {
@@ -91,21 +91,44 @@ const Contact = () => {
               </div>
               <div>
                 <p className="text-sm text-slate-400 mb-1">Email</p>
-                <a href="mailto:kalyan@example.com" className="text-white hover:text-blue-400 transition-colors">
-                  kalyan@example.com
+                <a href="mailto:kalyanace44@gmail.com" className="text-white hover:text-blue-400 transition-colors">
+                  kalyanace44@gmail.com
                 </a>
               </div>
             </div>
 
-            {/* Phone */}
+            {/* LinkedIn */}
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-500/20 rounded-lg">
-                <Phone size={24} className="text-green-400" />
+              <div className="p-3 bg-blue-600/20 rounded-lg">
+                <Linkedin size={24} className="text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-slate-400 mb-1">Phone</p>
-                <a href="tel:+919876543210" className="text-white hover:text-green-400 transition-colors">
-                  +91 98765 43210
+                <p className="text-sm text-slate-400 mb-1">LinkedIn</p>
+                <a 
+                  href="https://www.linkedin.com/in/ekalyan" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white hover:text-blue-500 transition-colors"
+                >
+                  linkedin.com/in/ekalyan
+                </a>
+              </div>
+            </div>
+
+            {/* GitHub */}
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-gray-500/20 rounded-lg">
+                <Github size={24} className="text-gray-300" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-400 mb-1">GitHub</p>
+                <a 
+                  href="https://github.com/kalyanace44" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-white hover:text-gray-300 transition-colors"
+                >
+                  github.com/kalyanace44
                 </a>
               </div>
             </div>
