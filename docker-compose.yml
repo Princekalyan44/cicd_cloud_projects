@@ -1,9 +1,43 @@
 # Docker Compose Configuration for Portfolio Application
-# Orchestrates frontend and chatbot services
-
-version: '3.8'
+# Orchestrates frontend, chatbot, and database services
 
 services:
+  # ============================================
+  # PostgreSQL Database with pgvector
+  # ============================================
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: portfolio-postgres
+    
+    # Port mapping (optional - for direct access)
+    ports:
+      - "5433:5432"  # Using 5433 to avoid conflict with host PostgreSQL
+    
+    # Environment variables
+    environment:
+      - POSTGRES_USER=portfolio_user
+      - POSTGRES_PASSWORD=portfolio_pass
+      - POSTGRES_DB=portfolio_db
+    
+    # Volume for data persistence
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portfolio_user -d portfolio_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Connect to custom network
+    networks:
+      - portfolio-network
+
   # ============================================
   # Frontend Service - Next.js Portfolio
   # ============================================
@@ -82,8 +116,20 @@ services:
       - ENVIRONMENT=production
       - PORT=8080
       - LOG_LEVEL=info
-      # Add OpenAI API key or other AI service credentials
+      # Database connection (using containerized PostgreSQL)
+      - DATABASE_URL=postgresql://portfolio_user:portfolio_pass@postgres:5432/portfolio_db
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=portfolio_user
+      - POSTGRES_PASSWORD=portfolio_pass
+      - POSTGRES_DB=portfolio_db
+      # Add OpenAI API key or other AI service credentials if needed
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
+    
+    # Depends on database
+    depends_on:
+      postgres:
+        condition: service_healthy
     
     # Health check
     healthcheck:
@@ -110,7 +156,7 @@ services:
           cpus: '0.5'
           memory: 512M
     
-    # Volume for knowledge base data (optional)
+    # Volume for knowledge base data
     volumes:
       - ./chatbot-service/data:/app/data:ro
 
@@ -123,8 +169,9 @@ networks:
     name: portfolio-network
 
 # ============================================
-# Volumes (if needed for persistence)
+# Volumes for data persistence
 # ============================================
 volumes:
-  chatbot-data:
+  postgres-data:
     driver: local
+    name: portfolio-postgres-data
