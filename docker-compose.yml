@@ -15,9 +15,9 @@ services:
     
     # Environment variables
     environment:
-      - POSTGRES_USER=portfolio_user
-      - POSTGRES_PASSWORD=portfolio_pass
-      - POSTGRES_DB=portfolio_db
+      - POSTGRES_USER=dbadmin
+      - POSTGRES_PASSWORD=dbpassword
+      - POSTGRES_DB=portfolio
     
     # Volume for data persistence
     volumes:
@@ -25,7 +25,7 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U portfolio_user -d portfolio_db"]
+      test: ["CMD-SHELL", "pg_isready -U dbadmin -d portfolio"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +64,7 @@ services:
     # Depends on chatbot service
     depends_on:
       chatbot-service:
-        condition: service_healthy
+        condition: service_started
     
     # Health check
     healthcheck:
@@ -111,18 +111,19 @@ services:
     # ports:
     #   - "8080:8080"
     
-    # Environment variables
+    # Environment variables (matching entrypoint.sh expectations)
     environment:
       - ENVIRONMENT=production
       - PORT=8080
       - LOG_LEVEL=info
-      # Database connection (using containerized PostgreSQL)
-      - DATABASE_URL=postgresql://portfolio_user:portfolio_pass@postgres:5432/portfolio_db
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=portfolio_user
-      - POSTGRES_PASSWORD=portfolio_pass
-      - POSTGRES_DB=portfolio_db
+      # Database connection (matching entrypoint.sh variable names)
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=dbadmin
+      - DB_PASSWORD=dbpassword
+      - DB_NAME=portfolio
+      # Also provide DATABASE_URL for app usage
+      - DATABASE_URL=postgresql://dbadmin:dbpassword@postgres:5432/portfolio
       # Add OpenAI API key or other AI service credentials if needed
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
     
@@ -131,13 +132,13 @@ services:
       postgres:
         condition: service_healthy
     
-    # Health check
+    # Health check - wait longer for initialization
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/localhost/8080' || exit 1"]
       interval: 30s
       timeout: 5s
-      start_period: 20s
-      retries: 3
+      start_period: 60s  # Longer start period for DB initialization
+      retries: 5
     
     # Restart policy
     restart: unless-stopped
