@@ -1,0 +1,254 @@
+{
+  "personal_info": {
+    "name": "Kalyan",
+    "role": "DevOps Engineer / Cloud Operations Engineer",
+    "location": "Bangalore, Karnataka, India",
+    "experience_years": 3,
+    "contact": {
+      "email": "kalyanace44@gmail.com",
+      "linkedin": "https://www.linkedin.com/in/ekalyan",
+      "github": "https://github.com/kalyanace44"
+    },
+    "summary": "Experienced DevOps and Cloud Operations engineer with 3+ years of industry experience. Highly proficient in CI/CD pipeline development, cloud infrastructure automation, and security integration. Actively learning and applying generative AI concepts alongside advanced cloud-native technologies."
+  },
+  
+  "skills": {
+    "cloud_platforms": [
+      "AWS (EC2, EKS, S3, VPC, IAM, RDS, Lambda)",
+      "Primary region: ap-south-1 (Mumbai)"
+    ],
+    "containers_orchestration": [
+      "Docker",
+      "Kubernetes (EKS)",
+      "Container orchestration and deployment strategies"
+    ],
+    "cicd_tools": [
+      "GitLab CI/CD",
+      "GitHub Actions",
+      "Jenkins",
+      "Pipeline automation and optimization"
+    ],
+    "infrastructure_as_code": [
+      "Terraform",
+      "AWS CloudFormation",
+      "Infrastructure automation"
+    ],
+    "security_devops": [
+      "Trivy (container scanning)",
+      "SonarQube (SAST)",
+      "OWASP ZAP (DAST)",
+      "IAC scanning",
+      "DevSecOps pipeline integration"
+    ],
+    "programming_scripting": [
+      "Python (automation, scripting)",
+      "Bash scripting",
+      "Node.js/JavaScript"
+    ],
+    "monitoring_logging": [
+      "Prometheus",
+      "Grafana",
+      "CloudWatch",
+      "ELK Stack awareness"
+    ],
+    "version_control": [
+      "Git",
+      "GitHub",
+      "GitLab"
+    ],
+    "operating_systems": [
+      "Linux/Ubuntu (primary)",
+      "System administration"
+    ]
+  },
+  
+  "experience": [
+    {
+      "company": "Justdial Ltd.",
+      "location": "Bangalore",
+      "position": "DevOps Engineer / Cloud Operations Engineer",
+      "period": "Current",
+      "duration": "3+ years",
+      "responsibilities": [
+        "DevOps pipeline automation and CI/CD implementation",
+        "AWS Cloud infrastructure management with Terraform",
+        "Kubernetes (EKS) cluster management and deployments",
+        "Linux system administration",
+        "Security integration in DevSecOps pipelines (SAST, DAST, IAC scanning)",
+        "Build and deployment troubleshooting",
+        "Infrastructure as Code development and maintenance"
+      ]
+    },
+    {
+      "company": "Tech Mahindra",
+      "position": "Previous Role",
+      "responsibilities": [
+        "DevOps operations",
+        "Cloud infrastructure support"
+      ]
+    }
+  ],
+  
+  "education": {
+    "degree": "B.E. in Computer Science",
+    "institution": "Dr Ambedkar Institute of Technology",
+    "period": "2017-2020",
+    "prior_education": [
+      "Diploma (2014-2017)",
+      "High School (completed 2014)"
+    ]
+  },
+  
+  "projects": [
+    {
+      "name": "Portfolio Website with AI Chatbot",
+      "description": "Full-stack portfolio with Next.js frontend and AI-powered chatbot",
+      "technologies": [
+        "Next.js 14",
+        "React",
+        "Tailwind CSS",
+        "Python FastAPI (chatbot backend)",
+        "Docker",
+        "Kubernetes",
+        "AWS EKS"
+      ],
+      "features": [
+        "Responsive modern UI with animations",
+        "AI chatbot for portfolio Q&A",
+        "Containerized microservices",
+        "Deployed on AWS EKS",
+        "CI/CD with GitHub Actions"
+      ]
+    },
+    {
+      "name": "Cloud Infrastructure Automation",
+      "description": "Complete AWS infrastructure provisioned with Terraform",
+      "technologies": [
+        "Terraform",
+        "AWS (VPC, EKS, RDS, S3, ALB, WAF)",
+        "Infrastructure as Code"
+      ],
+      "features": [
+        "Multi-tier VPC architecture",
+        "EKS cluster with node groups",
+        "RDS PostgreSQL with pgvector",
+        "Application Load Balancer",
+        "WAF security rules",
+        "Fine-grained IAM policies"
+      ]
+    },
+    {
+      "name": "DevSecOps CI/CD Pipelines",
+      "description": "Secure automated deployment pipelines",
+      "technologies": [
+        "GitLab CI/CD",
+        "GitHub Actions",
+        "Trivy",
+        "SonarQube",
+        "OWASP ZAP"
+      ],
+      "features": [
+        "Container security scanning",
+        "Static code analysis (SAST)",
+        "Dynamic application security testing (DAST)",
+        "Infrastructure as Code scanning",
+        "Automated security compliance checks"
+      ]
+    }
+  ],
+  
+  "learning_interests": [
+    "Generative AI projects and concepts",
+    "RAG (Retrieval Augmented Generation)",
+    "MCP (Model Context Protocol)",
+    "Kyverno policies for Kubernetes",
+    "Advanced Terraform best practices",
+    "Microservices architecture",
+    "AI chatbot development"
+  ],
+  
+  "certifications_focus": [
+    "AWS Solutions Architecture",
+    "Cloud-native security (SOC2/ISO/HIPAA awareness)",
+    "Kubernetes administration"
+  ],
+  
+  "availability": {
+    "status": "Open to opportunities",
+    "types": [
+      "Full-time positions",
+      "Freelance projects",
+      "Consulting engagements"
+    ],
+    "response_time": "Usually within 24 hours",
+    "preferred_roles": [
+      "Senior DevOps Engineer",
+      "Cloud Engineer",
+      "Site Reliability Engineer (SRE)",
+      "DevSecOps Engineer"
+    ]
+  },
+  
+  "technical_achievements": [
+    "Designed and implemented secure CI/CD pipelines with integrated security scanning",
+    "Managed AWS cloud infrastructure across multiple environments",
+    "Automated infrastructure provisioning reducing deployment time significantly",
+    "Implemented DevSecOps practices for security compliance",
+    "Built and maintained Kubernetes clusters for production workloads",
+    "Developed Python automation scripts for operational efficiency"
+  ],
+  
+  "tools_expertise": {
+    "ide": "VS Code",
+    "platforms": [
+      "GitHub",
+      "GitLab",
+      "AWS Console",
+      "AWS CLI"
+    ],
+    "local_environment": "Ubuntu/Linux"
+  },
+  
+  "faq": [
+    {
+      "question": "What is your email?",
+      "answer": "You can reach me at kalyanace44@gmail.com"
+    },
+    {
+      "question": "Where are you located?",
+      "answer": "I'm based in Bangalore, Karnataka, India"
+    },
+    {
+      "question": "How many years of experience do you have?",
+      "answer": "I have over 3 years of experience in DevOps and Cloud Operations"
+    },
+    {
+      "question": "What is your current company?",
+      "answer": "I currently work at Justdial Ltd. in Bangalore"
+    },
+    {
+      "question": "What cloud platforms do you work with?",
+      "answer": "I primarily work with AWS, including services like EC2, EKS, S3, VPC, RDS, and Lambda. My main region is ap-south-1 (Mumbai)."
+    },
+    {
+      "question": "What DevOps tools do you use?",
+      "answer": "I work with Docker, Kubernetes (EKS), Terraform, GitLab CI/CD, GitHub Actions, and various security tools like Trivy, SonarQube, and OWASP ZAP."
+    },
+    {
+      "question": "Can you work on freelance projects?",
+      "answer": "Yes! I'm open to full-time opportunities, freelance projects, and consulting engagements. I usually respond within 24 hours."
+    },
+    {
+      "question": "What programming languages do you know?",
+      "answer": "I'm proficient in Python for automation and scripting, Bash for shell scripting, and have experience with Node.js/JavaScript."
+    },
+    {
+      "question": "Do you have GitHub or LinkedIn?",
+      "answer": "Yes! You can find me on GitHub at github.com/kalyanace44 and LinkedIn at linkedin.com/in/ekalyan"
+    },
+    {
+      "question": "What are you currently learning?",
+      "answer": "I'm actively learning Generative AI concepts, RAG systems, advanced Kubernetes policies with Kyverno, and building AI-powered applications."
+    }
+  ]
+}
